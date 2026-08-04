@@ -148,6 +148,14 @@ def compute_features(data: pd.DataFrame, cfg: SignalConfig) -> pd.DataFrame:
 
     impulse_return = close.pct_change(cfg.impulse_bars)
     atr_fraction = atr / close.replace(0.0, np.nan)
+    # Approximate rolling quote turnover from base volume * close. At entry
+    # this feature is shifted one row by build_candidate_frame, so only bars
+    # completed before the entry bar contribute to the operational liquidity
+    # floor.
+    daily_quote_volume = (volume * close).rolling(
+        288,
+        min_periods=288,
+    ).sum()
 
     return pd.DataFrame(
         {
@@ -163,6 +171,7 @@ def compute_features(data: pd.DataFrame, cfg: SignalConfig) -> pd.DataFrame:
             "volume_ratio": volume_ratio,
             "compression_rank": compression_rank,
             "impulse_return": impulse_return,
+            "daily_quote_volume": daily_quote_volume,
         },
         index=data.index,
     )
@@ -312,6 +321,9 @@ def build_candidate_frame(data: pd.DataFrame, cfg: SignalConfig) -> pd.DataFrame
     aligned["compression_strength"] = (
         cfg.compression_quantile - aligned["compression_rank"]
     ) / cfg.compression_quantile
+    aligned["log_daily_quote_volume"] = np.log(
+        aligned["daily_quote_volume"].clip(lower=1.0)
+    )
 
     common = (
         aligned["adx_excess"]
