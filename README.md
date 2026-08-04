@@ -99,3 +99,6 @@ or later volume.
 
 The v1 raw-strength selector failed inside design. The frozen causal ranker
 follow-up is documented in [`RESEARCH_CHARTER_V2.md`](RESEARCH_CHARTER_V2.md).
+V2 also failed after its positive time-stop labels produced low realized RR and
+severe symbol concentration. The TP-specific, deduplicated family-union v3 is
+frozen in [`RESEARCH_CHARTER_V3.md`](RESEARCH_CHARTER_V3.md).
