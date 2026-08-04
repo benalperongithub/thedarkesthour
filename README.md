@@ -80,9 +80,11 @@ an unseen validation period:
 
 - design/discovery: `2023-01-01 <= entry < 2025-04-01`;
 - validation: `2025-04-01 <= entry < 2026-01-01`;
-- sealed holdout: `2026-01-01 <= entry < 2026-08-01`.
+- retrospective stress: `2026-01-01 <= entry < 2026-08-01`.
 
-The holdout must not be opened to rescue a failed discovery/validation result.
+The wider Phoenix programme has already inspected the 2026 market history, so
+it is not described as a genuinely unseen holdout. It must not be used to
+rescue a failed discovery/internal-validation result.
 `build_statefree_tape.py` independently replays every raw signal so candidate
 labels are not suppressed by per-symbol position state. `run_causal_scanner.py`
 then walks those candidates chronologically, selects only the strongest
@@ -94,3 +96,6 @@ For the 77-symbol discovery and validation runs, eligibility uses a frozen
 USD 10 million trailing-24h approximate quote-volume floor. The value at an
 entry is shifted from completed bars, so the filter never reads the entry bar
 or later volume.
+
+The v1 raw-strength selector failed inside design. The frozen causal ranker
+follow-up is documented in [`RESEARCH_CHARTER_V2.md`](RESEARCH_CHARTER_V2.md).
