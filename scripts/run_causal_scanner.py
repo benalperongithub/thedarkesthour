@@ -138,6 +138,11 @@ def main() -> None:
         top_r = pd.to_numeric(top["net_R"], errors="raise") if len(top) else pd.Series(dtype=float)
         long_r = top_r[direction.eq("long")].to_numpy(dtype=float)
         short_r = top_r[direction.eq("short")].to_numpy(dtype=float)
+        selected_liquidity = (
+            pd.to_numeric(top["daily_quote_volume"], errors="raise")
+            if len(top)
+            else pd.Series(dtype=float)
+        )
         competing_timestamps = int(sum(len(group) > 1 for _, group in grouped))
 
         rows.append(
@@ -158,6 +163,16 @@ def main() -> None:
                 "short_n": len(short_r),
                 "short_R": float(short_r.sum()),
                 "short_PF": _profit_factor(short_r) if len(short_r) else float("nan"),
+                "median_daily_quote_volume": (
+                    float(selected_liquidity.median())
+                    if len(selected_liquidity)
+                    else float("nan")
+                ),
+                "min_daily_quote_volume": (
+                    float(selected_liquidity.min())
+                    if len(selected_liquidity)
+                    else float("nan")
+                ),
                 "random_n_median": float(np.median(random_n)),
                 "random_total_R_p05": float(np.quantile(random_total, 0.05)),
                 "random_total_R_median": float(np.median(random_total)),
