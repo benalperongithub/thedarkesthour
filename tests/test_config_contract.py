@@ -28,4 +28,6 @@ def test_fixed_r_geometry_is_frozen() -> None:
 
     assert strategy["sl_mode"] == "pct"
     assert strategy["rr_ratio"] == 2.0
+    assert strategy["ex1_sl_pct"] == strategy["sl_pct"]
+    assert strategy["ex1_tp_pct"] == strategy["rr_ratio"] * strategy["sl_pct"]
     assert strategy["worst_case_intrabar"] is True
