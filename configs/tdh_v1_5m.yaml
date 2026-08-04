@@ -67,11 +67,13 @@ strategy:
   exchange1_fee_bps: 3.5
   exchange1_slippage_bps: 0.5
   exchange1_mmr: 0.005
-  exchange2_leverage: 0
+  # Phoenix's liquidation ledger validates both diagnostic leverage fields,
+  # even when EX2 notional and margin are zero in a single-exchange run.
+  exchange2_leverage: 1
   exchange2_margin_usd: 0
   exchange2_fee_bps: 0.0
   exchange2_slippage_bps: 0.0
-  exchange2_mmr: 0.0
+  exchange2_mmr: 0.005
 
   funding_model:
     enabled: true
@@ -91,4 +93,3 @@ realism:
     enabled: false
     exchange1_liquidation_fee_bps: 0.0
     exchange2_liquidation_fee_bps: 0.0
-
