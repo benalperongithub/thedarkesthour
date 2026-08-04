@@ -50,6 +50,10 @@ def main() -> None:
                 f"strategy.tdh_family={family}",
                 "--set",
                 f"strategy.sl_pct={stop}",
+                "--set",
+                f"strategy.ex1_sl_pct={stop}",
+                "--set",
+                f"strategy.ex1_tp_pct={2.0 * stop}",
                 "--out",
                 str(summary),
                 "--trades-out",
@@ -75,4 +79,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
