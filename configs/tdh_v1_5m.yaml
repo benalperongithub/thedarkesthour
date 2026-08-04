@@ -51,6 +51,11 @@ strategy:
   rr_ratio: 2.0
   sl_mode: pct
   sl_pct: 0.02
+  # Phoenix's legacy settlement layer rewrites the reporting-only Ex1 level
+  # columns from these keys. Keep them mirrored to the real R/R builder so
+  # exported sl_price/tp diagnostics describe the levels actually traded.
+  ex1_sl_pct: 0.02
+  ex1_tp_pct: 0.04
   sl_atr_mult: 1.5
   atr_period: 14
   exit_atr_period: 14
