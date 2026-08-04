@@ -4,7 +4,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from darkest_hour.signals import FAMILIES, NEUTRAL, SignalConfig, build_entry_tokens
+from darkest_hour.signals import (
+    FAMILIES,
+    NEUTRAL,
+    SignalConfig,
+    build_candidate_frame,
+    build_entry_tokens,
+)
 
 
 def bars(n: int = 1600) -> pd.DataFrame:
@@ -48,3 +54,12 @@ def test_unknown_family_is_rejected() -> None:
     with pytest.raises(ValueError, match="family must be one of"):
         SignalConfig(family="historically_best_magic")
 
+
+@pytest.mark.parametrize("family", FAMILIES)
+def test_candidate_features_are_prefix_invariant(family: str) -> None:
+    data = bars()
+    cfg = SignalConfig(family=family)
+    full = build_candidate_frame(data, cfg)
+    cut = 1200
+    prefix = build_candidate_frame(data.iloc[:cut], cfg)
+    pd.testing.assert_frame_equal(full.iloc[:cut], prefix)
