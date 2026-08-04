@@ -71,3 +71,19 @@ PYTHONPATH="$PWD:$PHX" \
 The 77-symbol tournament is deliberately not the first command. The one-symbol
 smoke must prove that Phoenix can import the external class, that S1 produces a
 trade log and that the configured stop/target geometry is present.
+
+## Frozen research sequence
+
+The v1 research calendar is split before scanner selection:
+
+- discovery: `2023-01-01 <= entry < 2025-01-01`;
+- validation: `2025-01-01 <= entry < 2026-01-01`;
+- sealed holdout: `2026-01-01 <= entry < 2026-08-01`.
+
+The holdout must not be opened to rescue a failed discovery/validation result.
+`build_statefree_tape.py` independently replays every raw signal so candidate
+labels are not suppressed by per-symbol position state. `run_causal_scanner.py`
+then walks those candidates chronologically, selects only the strongest
+simultaneous signal without reading outcomes, and permits one global position.
+Its random-selector simulation measures whether the frozen strength score adds
+anything beyond having a useful eligible universe.
