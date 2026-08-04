@@ -264,3 +264,82 @@ def build_entry_tokens(data: pd.DataFrame, cfg: SignalConfig) -> pd.Series:
     raw.loc[short & ~long] = SHORT
     return raw.shift(1).fillna(NEUTRAL).astype("string")
 
+
+def build_candidate_frame(data: pd.DataFrame, cfg: SignalConfig) -> pd.DataFrame:
+    """Return causally aligned entry features and a frozen strength score.
+
+    A candidate at row ``i`` is decided from completed row ``i-1`` and enters
+    at row ``i`` close, matching :func:`build_entry_tokens`. The score is an
+    outcome-blind, dimensionless diagnostic used only to break simultaneous
+    cross-symbol signals; it is not fitted on trade results.
+    """
+    features = compute_features(data, cfg)
+    long, short = raw_signal_sides(data, features, cfg)
+    raw = pd.Series(NEUTRAL, index=data.index, dtype="string")
+    raw.loc[long & ~short] = LONG
+    raw.loc[short & ~long] = SHORT
+    direction = raw.shift(1).fillna(NEUTRAL).astype("string")
+
+    aligned = features.shift(1).copy()
+    decision_close = pd.to_numeric(data["close"], errors="raise").shift(1)
+    sign = pd.Series(0.0, index=data.index)
+    sign.loc[direction.eq(LONG)] = 1.0
+    sign.loc[direction.eq(SHORT)] = -1.0
+
+    atr = aligned["atr"].replace(0.0, np.nan)
+    atr_fraction = aligned["atr_fraction"].replace(0.0, np.nan)
+    aligned["trend_signed_atr"] = (
+        sign * (aligned["ema_fast"] - aligned["ema_slow"]) / atr
+    )
+    aligned["impulse_signed_atr"] = (
+        sign * aligned["impulse_return"] / atr_fraction
+    )
+    aligned["breakout_signed_atr"] = np.where(
+        direction.eq(LONG),
+        (decision_close - aligned["channel_high"]) / atr,
+        np.where(
+            direction.eq(SHORT),
+            (aligned["channel_low"] - decision_close) / atr,
+            np.nan,
+        ),
+    )
+    aligned["adx_excess"] = (
+        aligned["adx"] - cfg.adx_threshold
+    ) / max(cfg.adx_threshold, 1.0)
+    aligned["log_volume_excess"] = np.log(
+        aligned["volume_ratio"].clip(lower=1e-12) / cfg.volume_ratio_min
+    )
+    aligned["compression_strength"] = (
+        cfg.compression_quantile - aligned["compression_rank"]
+    ) / cfg.compression_quantile
+
+    common = (
+        aligned["adx_excess"]
+        + aligned["log_volume_excess"]
+        + aligned["trend_signed_atr"].clip(lower=0.0)
+    )
+    if cfg.family == "trend_pullback":
+        strength = common
+    elif cfg.family == "compression_breakout":
+        strength = (
+            common
+            + aligned["breakout_signed_atr"].clip(lower=0.0)
+            + aligned["compression_strength"].clip(lower=0.0)
+        )
+    elif cfg.family == "failed_breakout":
+        strength = common + (-aligned["breakout_signed_atr"]).clip(lower=0.0)
+    else:
+        strength = (
+            common
+            + aligned["breakout_signed_atr"].clip(lower=0.0)
+            + aligned["impulse_signed_atr"].clip(lower=0.0)
+        )
+
+    aligned.insert(0, "direction", direction)
+    aligned.insert(
+        1,
+        "entry_price",
+        pd.to_numeric(data["close"], errors="raise").astype(float),
+    )
+    aligned["raw_strength"] = strength.where(direction.ne(NEUTRAL))
+    return aligned
