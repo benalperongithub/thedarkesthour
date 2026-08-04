@@ -1,0 +1,94 @@
+general:
+  data_path: /home/tdw/phx-research/data-perp
+  symbol: ADAUSDT
+  exchange: binance
+  tf: 5m
+  start_date: '2023-01-01'
+  end_date: '2026-08-01'
+  workers: 4
+
+s0:
+  enabled: false
+risk:
+  initial_capital: 20000
+s1:
+  enabled: true
+s2:
+  enabled: false
+  filter_operational_closures: true
+s3:
+  enabled: false
+s4:
+  enabled: false
+s5:
+  enabled: false
+s6:
+  enabled: false
+
+strategy:
+  module: darkest_hour.strategies.tdh_v1
+  class: TheDarkestHourStrategy
+  ref: darkest_hour.strategies.tdh_v1:TheDarkestHourStrategy
+
+  # Frozen v1 entry family. Tournament runner overrides only this declared key.
+  tdh_family: trend_pullback
+  tdh_ema_fast: 48
+  tdh_ema_slow: 192
+  tdh_atr_period: 50
+  tdh_adx_period: 50
+  tdh_adx_threshold: 20.0
+  tdh_channel_bars: 48
+  tdh_volume_window: 288
+  tdh_volume_ratio_min: 1.20
+  tdh_compression_window: 576
+  tdh_compression_quantile: 0.25
+  tdh_impulse_bars: 3
+  tdh_impulse_atr: 1.25
+  tdh_weekdays_only: true
+
+  # Phoenix S1 fixed single-exchange exit contract.
+  entry_policy: edge_only
+  rr_ratio: 2.0
+  sl_mode: pct
+  sl_pct: 0.02
+  sl_atr_mult: 1.5
+  atr_period: 14
+  exit_atr_period: 14
+  min_sl_pct: 0.002
+  max_sl_pct: 0.03
+  time_stop_bars: 576
+  worst_case_intrabar: true
+
+  sizing_mode: explicit_notional
+  exchange1_notional_usd: 1000
+  exchange2_notional_usd: 0
+  exchange1_leverage: 1
+  exchange1_margin_usd: 1000
+  exchange1_fee_bps: 3.5
+  exchange1_slippage_bps: 0.5
+  exchange1_mmr: 0.005
+  exchange2_leverage: 0
+  exchange2_margin_usd: 0
+  exchange2_fee_bps: 0.0
+  exchange2_slippage_bps: 0.0
+  exchange2_mmr: 0.0
+
+  funding_model:
+    enabled: true
+    exchange1_long_apr: 0.1095
+    exchange1_short_apr: 0.1095
+    exchange2_long_apr: 0.0
+    exchange2_short_apr: 0.0
+
+realism:
+  enabled: true
+  slippage:
+    exchange1_bps_round: 1.5
+    exchange2_bps_round: 0.0
+  bonus:
+    haircut_pct: 0.0
+  liquidation:
+    enabled: false
+    exchange1_liquidation_fee_bps: 0.0
+    exchange2_liquidation_fee_bps: 0.0
+
