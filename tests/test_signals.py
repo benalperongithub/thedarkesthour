@@ -63,3 +63,15 @@ def test_candidate_features_are_prefix_invariant(family: str) -> None:
     cut = 1200
     prefix = build_candidate_frame(data.iloc[:cut], cfg)
     pd.testing.assert_frame_equal(full.iloc[:cut], prefix)
+
+
+def test_daily_quote_volume_uses_only_completed_bars() -> None:
+    data = bars()
+    output = build_candidate_frame(data, SignalConfig())
+    first_eligible_row = 288
+    expected = (data["volume"] * data["close"]).iloc[:288].sum()
+
+    assert np.isclose(
+        output["daily_quote_volume"].iloc[first_eligible_row],
+        expected,
+    )
