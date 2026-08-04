@@ -74,10 +74,12 @@ trade log and that the configured stop/target geometry is present.
 
 ## Frozen research sequence
 
-The v1 research calendar is split before scanner selection:
+The v1 research calendar is split before scanner selection. The Q1 2025 mini
+tournament has already been inspected, so that quarter is part of design—not
+an unseen validation period:
 
-- discovery: `2023-01-01 <= entry < 2025-01-01`;
-- validation: `2025-01-01 <= entry < 2026-01-01`;
+- design/discovery: `2023-01-01 <= entry < 2025-04-01`;
+- validation: `2025-04-01 <= entry < 2026-01-01`;
 - sealed holdout: `2026-01-01 <= entry < 2026-08-01`.
 
 The holdout must not be opened to rescue a failed discovery/validation result.
@@ -87,3 +89,8 @@ then walks those candidates chronologically, selects only the strongest
 simultaneous signal without reading outcomes, and permits one global position.
 Its random-selector simulation measures whether the frozen strength score adds
 anything beyond having a useful eligible universe.
+
+For the 77-symbol discovery and validation runs, eligibility uses a frozen
+USD 10 million trailing-24h approximate quote-volume floor. The value at an
+entry is shifted from completed bars, so the filter never reads the entry bar
+or later volume.
