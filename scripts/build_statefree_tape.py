@@ -26,6 +26,8 @@ FEATURE_COLUMNS = (
     "adx_excess",
     "log_volume_excess",
     "compression_strength",
+    "daily_quote_volume",
+    "log_daily_quote_volume",
     "raw_strength",
 )
 
@@ -54,6 +56,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--time-stop-bars", type=int, default=576)
     parser.add_argument("--round-trip-cost-bps", type=float, default=9.5)
     parser.add_argument("--funding-apr", type=float, default=0.1095)
+    parser.add_argument(
+        "--min-daily-quote-volume",
+        type=float,
+        default=0.0,
+        help="Causal trailing-24h approximate quote-volume floor in USD.",
+    )
     parser.add_argument("--output-root", required=True)
     return parser.parse_args()
 
@@ -104,6 +112,8 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("all stops must be positive")
     if args.rr_ratio <= 0.0:
         raise ValueError("rr-ratio must be positive")
+    if args.min_daily_quote_volume < 0.0:
+        raise ValueError("min-daily-quote-volume cannot be negative")
 
 
 def main() -> None:
@@ -146,6 +156,7 @@ def main() -> None:
             candidates = build_candidate_frame(bars, cfg)
             eligible = (
                 candidates["direction"].ne(NEUTRAL)
+                & candidates["daily_quote_volume"].ge(args.min_daily_quote_volume)
                 & candidates.index.to_series().ge(start)
                 & candidates.index.to_series().lt(end)
             )
