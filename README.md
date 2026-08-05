@@ -163,3 +163,28 @@ PYTHONPATH="$PWD" "$PY" scripts/download_v7_basis_data.py \
 The downloader verifies Binance's published SHA-256 for every archive, rejects
 unsafe or malformed ZIP members, and records the observed CSV schema. No V7
 signal is defined until this data contract passes.
+
+After the bounded smoke passes, the full retrospective acquisition and
+normalization commands are:
+
+```bash
+DATA=/home/tdw/phx-research/data-perp
+V7RAW=results/v7_data_2023_2025
+V7NORM=results/v7_normalized_2023_2025
+
+PYTHONPATH="$PWD" "$PY" scripts/download_v7_basis_data.py \
+  --symbols-from-data-root "$DATA/binance" \
+  --start-month 2023-01 \
+  --end-month 2025-03 \
+  --workers 8 \
+  --progress-every 50 \
+  --output-root "$V7RAW"
+
+PYTHONPATH="$PWD" "$PY" scripts/normalize_v7_basis_data.py \
+  --manifest "$V7RAW/v7_download_manifest.csv" \
+  --output-root "$V7NORM"
+```
+
+The frozen crowding hypothesis and its acceptance gate are documented in
+`RESEARCH_CHARTER_V7.md`. Downloading and normalizing data does not run the V7
+signal or inspect its forward returns.
