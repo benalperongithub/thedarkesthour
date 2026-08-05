@@ -46,3 +46,13 @@ def test_partial_exit_weights_trigger_and_runner() -> None:
     assert result.partial_taken
     assert result.exit_reason == "MANAGED_TARGET"
     assert np.isclose(result.gross_r, 2.0)
+
+
+def test_partial_and_final_target_on_same_bar_are_both_accounted() -> None:
+    policy = ExitPolicy(
+        "PARTIAL", "partial", 3.0, 20, trigger_r=1.0, partial_fraction=0.5
+    )
+    data = bars([(100, 100, 100), (106, 99, 106)])
+    result = replay_exit_policy(data, 0, LONG, 0.02, policy)
+    assert result.partial_taken
+    assert np.isclose(result.gross_r, 2.0)
