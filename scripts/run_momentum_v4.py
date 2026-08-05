@@ -296,7 +296,11 @@ def main() -> None:
         + selected["entry_time"].dt.quarter.astype(str)
     )
     for quarter, subset in selected.groupby(quarter_key, sort=True):
-        row = metric_row(str(quarter), subset, weekdays)
+        period = pd.Period(str(quarter), freq="Q")
+        quarter_start = period.start_time
+        quarter_end = period.end_time
+        quarter_weekdays = len(pd.bdate_range(quarter_start, quarter_end))
+        row = metric_row(str(quarter), subset, quarter_weekdays)
         row["quarter"] = quarter
         quarter_rows.append(row)
     quarters = pd.DataFrame(quarter_rows)
