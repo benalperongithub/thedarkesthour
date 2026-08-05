@@ -5,6 +5,7 @@ import io
 import re
 import zipfile
 from dataclasses import dataclass
+from pathlib import Path
 from pathlib import PurePosixPath
 
 import pandas as pd
@@ -115,6 +116,72 @@ def inspect_zip(payload: bytes) -> dict[str, object]:
         "first_row": lines[0][:500],
         "last_row": lines[-1][:500],
     }
+
+
+def read_verified_archive(path: Path, expected_digest: str) -> pd.DataFrame:
+    payload = path.read_bytes()
+    verify_sha256(payload, expected_digest)
+    inspection = inspect_zip(payload)
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        with archive.open(str(inspection["member"])) as source:
+            return pd.read_csv(source)
+
+
+def normalize_funding(frame: pd.DataFrame) -> pd.DataFrame:
+    required = {"calc_time", "funding_interval_hours", "last_funding_rate"}
+    missing = required.difference(frame.columns)
+    if missing:
+        raise ValueError(f"funding archive missing columns: {sorted(missing)}")
+    result = frame.loc[:, sorted(required)].copy()
+    result["ts"] = pd.to_datetime(
+        pd.to_numeric(result.pop("calc_time"), errors="raise"),
+        unit="ms",
+        utc=True,
+    )
+    result["funding_interval_hours"] = pd.to_numeric(
+        result["funding_interval_hours"], errors="raise"
+    ).astype(float)
+    result["funding_rate"] = pd.to_numeric(
+        result.pop("last_funding_rate"), errors="raise"
+    ).astype(float)
+    if (result["funding_interval_hours"] <= 0.0).any():
+        raise ValueError("funding interval must be positive")
+    return (
+        result.drop_duplicates("ts", keep="last")
+        .sort_values("ts", kind="stable")
+        .reset_index(drop=True)
+    )
+
+
+def normalize_premium(frame: pd.DataFrame) -> pd.DataFrame:
+    required = {
+        "open_time",
+        "open",
+        "high",
+        "low",
+        "close",
+        "close_time",
+        "count",
+    }
+    missing = required.difference(frame.columns)
+    if missing:
+        raise ValueError(f"premium archive missing columns: {sorted(missing)}")
+    result = frame.loc[:, sorted(required)].copy()
+    open_ms = pd.to_numeric(result.pop("open_time"), errors="raise")
+    close_ms = pd.to_numeric(result.pop("close_time"), errors="raise")
+    duration = close_ms - open_ms
+    if not (duration == 3_599_999).all():
+        raise ValueError("premium archive contains a non-1h row")
+    result["open_ts"] = pd.to_datetime(open_ms, unit="ms", utc=True)
+    # The close is tradable only after the final millisecond of its hour.
+    result["ts"] = pd.to_datetime(close_ms + 1, unit="ms", utc=True)
+    for column in ("open", "high", "low", "close", "count"):
+        result[column] = pd.to_numeric(result[column], errors="raise").astype(float)
+    return (
+        result.drop_duplicates("ts", keep="last")
+        .sort_values("ts", kind="stable")
+        .reset_index(drop=True)
+    )
 
 
 def _looks_numeric(value: str) -> bool:
