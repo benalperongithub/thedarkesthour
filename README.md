@@ -102,3 +102,11 @@ follow-up is documented in [`RESEARCH_CHARTER_V2.md`](RESEARCH_CHARTER_V2.md).
 V2 also failed after its positive time-stop labels produced low realized RR and
 severe symbol concentration. The TP-specific, deduplicated family-union v3 is
 frozen in [`RESEARCH_CHARTER_V3.md`](RESEARCH_CHARTER_V3.md).
+
+## V4: a new hypothesis, not another V1 threshold
+
+V3 closed the event-trigger/ranker branch after its frozen 50% TP-probability
+gate produced no trades and its all-score diagnostic lost money. V4 therefore
+tests a separate cross-sectional momentum hypothesis. Its exact policy and
+acceptance gate are frozen in `RESEARCH_CHARTER_V4.md`; run it with
+`scripts/run_momentum_v4.py`.
