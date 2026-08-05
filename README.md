@@ -115,3 +115,9 @@ V4 failed its frozen gate. V5 does not cherry-pick its positive short side:
 it selects direction mode and one of five fixed/managed exit policies inside a
 purged nested quarterly procedure. The selection rule is frozen in
 `RESEARCH_CHARTER_V5.md` and implemented by `scripts/run_exit_tournament_v5.py`.
+
+V5 also failed, leaving the combined outer book almost exactly at break-even
+with excessive drawdown. Before V6 chooses another entry family,
+`scripts/audit_data_capabilities.py` inventories whether the local perpetual
+dataset contains basis, funding, open-interest, mark/index-price or taker-flow
+features rather than silently assuming an OHLCV-only research universe.
