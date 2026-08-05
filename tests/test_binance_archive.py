@@ -10,6 +10,8 @@ from darkest_hour.binance_archive import (
     ArchiveSpec,
     inspect_zip,
     month_range,
+    normalize_funding,
+    normalize_premium,
     parse_checksum,
     verify_sha256,
 )
@@ -71,3 +73,37 @@ def test_zip_rejects_path_traversal_and_multiple_members() -> None:
         archive.writestr("two.csv", "3,4\n")
     with pytest.raises(ValueError, match="expected one archive member"):
         inspect_zip(target.getvalue())
+
+
+def test_funding_schema_normalizes_to_causal_timestamp() -> None:
+    import pandas as pd
+
+    raw = pd.DataFrame(
+        {
+            "calc_time": [1704067200000],
+            "funding_interval_hours": [8],
+            "last_funding_rate": ["0.00010000"],
+        }
+    )
+    result = normalize_funding(raw)
+    assert result["ts"].iloc[0] == pd.Timestamp("2024-01-01", tz="UTC")
+    assert result["funding_rate"].iloc[0] == pytest.approx(0.0001)
+
+
+def test_premium_becomes_available_after_close_millisecond() -> None:
+    import pandas as pd
+
+    raw = pd.DataFrame(
+        {
+            "open_time": [1704067200000],
+            "open": ["0.001"],
+            "high": ["0.002"],
+            "low": ["-0.001"],
+            "close": ["0.0005"],
+            "close_time": [1704070799999],
+            "count": [720],
+        }
+    )
+    result = normalize_premium(raw)
+    assert result["open_ts"].iloc[0] == pd.Timestamp("2024-01-01", tz="UTC")
+    assert result["ts"].iloc[0] == pd.Timestamp("2024-01-01 01:00", tz="UTC")
