@@ -170,6 +170,12 @@ def _managed_replay(
                 policy,
             )
         if target_touched:
+            # Reaching a partial policy's final target necessarily crosses its
+            # lower partial trigger first. With the original stop already
+            # ruled out above, account for both fills even when they occur in
+            # the same OHLC bar.
+            if policy.kind == "partial" and not partial_taken:
+                partial_taken = True
             return _managed_result(
                 bars,
                 entry_pos,
