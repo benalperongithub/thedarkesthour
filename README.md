@@ -145,3 +145,21 @@ V6 first asks whether the entry has positive 1–4 hour forecasting value after
 costs. It intentionally performs no stop, target, partial-profit, or trailing
 exit search. Those trade-management choices become eligible for a purged
 tournament only if the pre-registered four-hour signal gate passes.
+
+V6 failed narrowly on mean return but materially on time stability and selector
+significance. V7 therefore begins with a bounded, checksum-verified download of
+official Binance USD-M funding-rate and premium-index archives. Run the smoke
+before expanding the date range or symbol universe:
+
+```bash
+PYTHONPATH="$PWD" "$PY" scripts/download_v7_basis_data.py \
+  --symbols BTCUSDT ETHUSDT SOLUSDT \
+  --start-month 2024-01 \
+  --end-month 2024-02 \
+  --workers 4 \
+  --output-root results/v7_data_smoke1
+```
+
+The downloader verifies Binance's published SHA-256 for every archive, rejects
+unsafe or malformed ZIP members, and records the observed CSV schema. No V7
+signal is defined until this data contract passes.
