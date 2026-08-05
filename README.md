@@ -121,3 +121,27 @@ with excessive drawdown. Before V6 chooses another entry family,
 `scripts/audit_data_capabilities.py` inventories whether the local perpetual
 dataset contains basis, funding, open-interest, mark/index-price or taker-flow
 features rather than silently assuming an OHLCV-only research universe.
+
+The audit found no basis, funding, mark/index price, open interest, or
+liquidation history, but all 77 symbols contain quote volume, trade count, and
+aggressive taker-buy flow at every stored timeframe. V6 therefore tests a new
+short-horizon residual-reversal hypothesis before adding external data. Its
+signal and pass/fail rule are frozen in `RESEARCH_CHARTER_V6.md`.
+
+```bash
+cd /home/tdw/the-darkest-hour
+PY=/home/tdw/ThePhoenixStrategySuite/.venv/bin/python
+DATA=/home/tdw/phx-research/data-perp
+
+PYTHONPATH="$PWD" "$PY" scripts/run_residual_reversal_v6.py \
+  --data-root "$DATA" \
+  --start 2023-03-01 \
+  --end 2025-04-01 \
+  --simulations 500 \
+  --output-root results/v6_residual_reversal1
+```
+
+V6 first asks whether the entry has positive 1–4 hour forecasting value after
+costs. It intentionally performs no stop, target, partial-profit, or trailing
+exit search. Those trade-management choices become eligible for a purged
+tournament only if the pre-registered four-hour signal gate passes.
