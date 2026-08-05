@@ -23,7 +23,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Download and verify a bounded Binance USD-M V7 data smoke."
     )
-    parser.add_argument("--symbols", nargs="+", required=True)
+    symbols = parser.add_mutually_exclusive_group(required=True)
+    symbols.add_argument("--symbols", nargs="+")
+    symbols.add_argument(
+        "--symbols-from-data-root",
+        help="Directory whose immediate subdirectories are symbol names.",
+    )
     parser.add_argument("--start-month", required=True)
     parser.add_argument("--end-month", required=True)
     parser.add_argument(
@@ -35,6 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--interval", default="1h")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--timeout", type=float, default=30.0)
+    parser.add_argument("--progress-every", type=int, default=25)
     parser.add_argument("--output-root", required=True)
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
@@ -109,7 +115,17 @@ def main() -> None:
         raise ValueError("workers must be positive")
     if args.timeout <= 0.0:
         raise ValueError("timeout must be positive")
-    symbols = sorted({symbol.upper() for symbol in args.symbols})
+    if args.progress_every <= 0:
+        raise ValueError("progress-every must be positive")
+    if args.symbols:
+        symbols = sorted({symbol.upper() for symbol in args.symbols})
+    else:
+        symbol_root = Path(args.symbols_from_data_root)
+        if not symbol_root.is_dir():
+            raise ValueError(f"symbol data root does not exist: {symbol_root}")
+        symbols = sorted(
+            path.name.upper() for path in symbol_root.iterdir() if path.is_dir()
+        )
     months = month_range(args.start_month, args.end_month)
     specs = [
         ArchiveSpec(symbol, data_type, month, args.interval)
@@ -142,11 +158,12 @@ def main() -> None:
         for count, future in enumerate(as_completed(futures), 1):
             row = future.result()
             rows.append(row)
-            print(
-                f"[{count:02d}/{len(specs):02d}] {row['symbol']} "
-                f"{row['data_type']} {row['month']}: {row['status']}",
-                flush=True,
-            )
+            if len(specs) <= 50 or count % args.progress_every == 0 or count == len(specs):
+                print(
+                    f"[{count:04d}/{len(specs):04d}] {row['symbol']} "
+                    f"{row['data_type']} {row['month']}: {row['status']}",
+                    flush=True,
+                )
 
     manifest = pd.DataFrame(rows).sort_values(
         ["symbol", "data_type", "month"], kind="stable"
