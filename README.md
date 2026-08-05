@@ -110,3 +110,8 @@ gate produced no trades and its all-score diagnostic lost money. V4 therefore
 tests a separate cross-sectional momentum hypothesis. Its exact policy and
 acceptance gate are frozen in `RESEARCH_CHARTER_V4.md`; run it with
 `scripts/run_momentum_v4.py`.
+
+V4 failed its frozen gate. V5 does not cherry-pick its positive short side:
+it selects direction mode and one of five fixed/managed exit policies inside a
+purged nested quarterly procedure. The selection rule is frozen in
+`RESEARCH_CHARTER_V5.md` and implemented by `scripts/run_exit_tournament_v5.py`.
