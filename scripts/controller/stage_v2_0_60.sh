@@ -10,8 +10,8 @@ REPO="/home/tdw/the-darkest-hour"
 REPO_SOURCE="$REPO/controller/staging/v2.0.60"
 GATE="/usr/local/sbin/tdh-lab-admin-gate"
 
-EXPECTED_CONTROLLER_SHA256="eb7cea802f3b703e5b5c8b2aaf3ec21d8273575814eb10a6b92c057028e02c12"
-EXPECTED_TEST_SHA256="b35bee4ef841d6843d0ddc60dcd0e876bb6d3d0a7cf490992c70857d250b2ced"
+EXPECTED_CONTROLLER_SHA256="6d3c6f2b9d0b40697002c72e26de175551123a05d808522b6ab40cb73a9bacca"
+EXPECTED_TEST_SHA256="642d77febb6c6163f13f7f8f3f6374621adb738dc2e6e212b098b256fdda62fa"
 
 cleanup() {
     if [[ -d "$TMP" && "$TMP" == "$BASE/staging/.v2.0.60-build-"* ]]; then
@@ -113,6 +113,11 @@ spoofed = copy.deepcopy(item)
 spoofed['config']['params']['return_lookback'] += 1
 assert module._v251_legal_frontier_item(source, spoofed) is False
 assert module._v251_legal_frontier_item(source, {'config': target}) is True
+cross_symbol = copy.deepcopy(target)
+cross_symbol['symbol'] = 'XRPUSDT'
+assert module._v251_legal_frontier_item(
+    source, {'config': cross_symbol}
+) is False
 print('V260_REGISTERED_SEED_TRANSITION_SMOKE_OK')
 PY
 

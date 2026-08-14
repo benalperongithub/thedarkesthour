@@ -86,6 +86,16 @@ class V260RegisteredSeedTransitionTests(unittest.TestCase):
             self.source, {'config': unregistered}
         ))
 
+        cross_symbol = copy.deepcopy(self.target)
+        cross_symbol['symbol'] = 'XRPUSDT'
+        self.assertEqual(
+            MODULE._v251_transition_axes(self.source, cross_symbol),
+            ('symbol', 'timeframe', 'registered_seed'),
+        )
+        self.assertFalse(MODULE._v251_legal_frontier_item(
+            self.source, {'config': cross_symbol}
+        ))
+
     def test_replenishment_admits_next_exact_registered_seed(self):
         context = {
             'contract_version': '2.0.2',
