@@ -10,7 +10,7 @@ REPO="/home/tdw/the-darkest-hour"
 REPO_SOURCE="$REPO/controller/staging/v2.0.57"
 GATE="/usr/local/sbin/tdh-lab-admin-gate"
 
-EXPECTED_CONTROLLER_SHA256="48b42530b4e48c9cd00fc82077acaa4a8c386d5344bdfd3dddb18ed010c1f7e2"
+EXPECTED_CONTROLLER_SHA256="1127c5e508afe2e4279a11258bc49d0300dc38d11a244c2faf2d316d4462f45e"
 EXPECTED_TEST_SHA256="73872f4ac5d2eec6eafdf5df5815ff6672863a1a3cea416a7d9ec738a59d3024"
 
 cleanup() {
