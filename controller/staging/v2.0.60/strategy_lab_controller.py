@@ -508,7 +508,10 @@ def _v251_legal_frontier_item(
     # its sealed definition changes both timeframe and parameters. Reconstruct
     # it from the active kernel registry before allowing that transition; a
     # spoofed marker or free-form config remains illegal.
-    return _v260_exact_controller_registered_seed(item)
+    return (
+        set(axes).issubset({'timeframe', 'registered_seed'})
+        and _v260_exact_controller_registered_seed(item)
+    )
 
 
 def _v251_skip_lane(context: dict[str, Any]) -> bool:
