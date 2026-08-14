@@ -188,3 +188,23 @@ PYTHONPATH="$PWD" "$PY" scripts/normalize_v7_basis_data.py \
 The frozen crowding hypothesis and its acceptance gate are documented in
 `RESEARCH_CHARTER_V7.md`. Downloading and normalizing data does not run the V7
 signal or inspect its forward returns.
+
+
+## Agentic research controller
+
+The current TDH Strategy Lab extends this repository's frozen research sequence
+with a deterministic, dual-lane research controller:
+
+- bounded Deep Researcher and Independent Critic advisory roles;
+- one causal Codex proposal lane and one adversarial Claude lane;
+- registered-family-only validation and controller-only promotion;
+- candidate, baseline, and negative-control S1 evaluation;
+- robust positive/negative memory and duplicate prevention;
+- lane-local quarantine and bounded epoch rollover on frontier exhaustion;
+- a proposed Frontier Scout intake layer for continuous, source-grounded
+  replenishment without allowing arbitrary executable strategy code.
+
+See [the architecture](docs/architecture.md), [agent contract](AGENTS.md), and
+[research queue contract](research/README.md). TDH remains strictly
+research-and-backtest-only: no live trading, paper trading, exchange API access,
+or S6 execution is part of this controller.
