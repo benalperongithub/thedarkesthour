@@ -13,6 +13,8 @@ START_ISO="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 BACKUP="${UNIT}.bak-${OLD_VERSION}-to-${NEW_VERSION}-${STAMP}"
 VERIFY_UNIT="/tmp/strategy-lab-supervisor-v2.1-v254-verify-${STAMP}.service"
 UNIT_UPDATED=false
+ACTIVATION_MODE=""
+BACKUP_CREATED=false
 
 cleanup() {
     rm -f -- "$VERIFY_UNIT"
@@ -74,7 +76,6 @@ PY
 
 echo "===== 3. BUILD AND VERIFY UPDATED SYSTEMD UNIT ====="
 test -f "$UNIT"
-cp -a -- "$UNIT" "$BACKUP"
 
 read -r OLD_COUNT NEW_COUNT < <(
     python3 - "$UNIT" "$OLD_VERSION" "$NEW_VERSION" <<'PY'
@@ -86,14 +87,22 @@ print(text.count(sys.argv[2]), text.count(sys.argv[3]))
 PY
 )
 
-if [[ "$OLD_COUNT" -ne 5 || "$NEW_COUNT" -ne 0 ]]; then
+if [[ "$OLD_COUNT" -eq 5 && "$NEW_COUNT" -eq 0 ]]; then
+    ACTIVATION_MODE="UPDATE_FROM_OLD"
+elif [[ "$OLD_COUNT" -eq 0 && "$NEW_COUNT" -eq 5 ]]; then
+    ACTIVATION_MODE="ALREADY_UPDATED"
+else
     echo "BLOCKED: unexpected unit version references"
     echo "OLD_COUNT=$OLD_COUNT"
     echo "NEW_COUNT=$NEW_COUNT"
     exit 3
 fi
 
-python3 - "$UNIT" "$VERIFY_UNIT" "$OLD_VERSION" "$NEW_VERSION" <<'PY'
+if [[ "$ACTIVATION_MODE" == "UPDATE_FROM_OLD" ]]; then
+    cp -a -- "$UNIT" "$BACKUP"
+    BACKUP_CREATED=true
+
+    python3 - "$UNIT" "$VERIFY_UNIT" "$OLD_VERSION" "$NEW_VERSION" <<'PY'
 from pathlib import Path
 import sys
 
@@ -112,13 +121,21 @@ if updated.count(new_version) != 5 or old_version in updated:
 
 destination.write_text(updated, encoding="utf-8")
 PY
+else
+    cp -a -- "$UNIT" "$VERIFY_UNIT"
+    echo "UNIT_ALREADY_BOUND_TO=$NEW_VERSION"
+fi
 
 systemd-analyze verify "$VERIFY_UNIT"
 grep -nF "$NEW_VERSION" "$VERIFY_UNIT"
 
 echo "===== 4. INSTALL UNIT AND START v2.0.54 ====="
-install -o root -g root -m 0644 "$VERIFY_UNIT" "$UNIT"
-UNIT_UPDATED=true
+if [[ "$ACTIVATION_MODE" == "UPDATE_FROM_OLD" ]]; then
+    install -o root -g root -m 0644 "$VERIFY_UNIT" "$UNIT"
+    UNIT_UPDATED=true
+else
+    cmp -s -- "$VERIFY_UNIT" "$UNIT"
+fi
 systemctl daemon-reload
 systemctl unmask --runtime "$SERVICE"
 systemctl reset-failed "$SERVICE" || true
@@ -174,6 +191,9 @@ UNIT_UPDATED=false
 cleanup
 trap - ERR EXIT
 
-echo "BACKUP_UNIT=$BACKUP"
+if [[ "$BACKUP_CREATED" == "true" ]]; then
+    echo "BACKUP_UNIT=$BACKUP"
+else
+    echo "BACKUP_UNIT=NOT_REQUIRED_ALREADY_BOUND"
+fi
 echo "TDH_V254_ACTIVATION_COMPLETE"
-
