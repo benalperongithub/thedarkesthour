@@ -1,0 +1,1683 @@
+{
+  "meta": {
+    "name": "TDH Crypto Futures Strategy Evidence Atlas",
+    "version": "1.0",
+    "generated_at": "2026-08-12",
+    "scope": "Evidence-backed and bot-implemented strategy hypotheses for liquid/high-cap crypto futures/perpetual research.",
+    "important": [
+      "Evidence score is research confidence, NOT expected return or probability of profit.",
+      "A strategy family may be supported while an exact parameter combination remains unvalidated.",
+      "Spot-paper evidence is explicitly penalized when transferred to futures/perpetuals.",
+      "Bot/repository existence is implementation evidence only, not profitability evidence.",
+      "No live or paper trading is implied; this artifact is designed for backtest/research prioritization."
+    ],
+    "primary_universe": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "BNBUSDT",
+      "DOGEUSDT"
+    ],
+    "secondary_universe": [
+      "ADAUSDT",
+      "LINKUSDT",
+      "LTCUSDT",
+      "TRXUSDT"
+    ],
+    "experiment_count": 1534,
+    "source_registry_count": 29,
+    "coverage_note": "This is a high-coverage evidence atlas, not a claim to have enumerated every webpage or paper on the internet. Systematic reviews are used as coverage backstops, then high-load-bearing primary studies and reproducible implementations are prioritized."
+  },
+  "scoring_rubric": {
+    "peer_review_replication": 30,
+    "futures_perpetual_and_liquid_market_relevance": 20,
+    "out_of_sample_regime_coverage": 15,
+    "cost_slippage_funding_liquidation_realism": 15,
+    "data_snooping_survivorship_multiple_testing_controls": 10,
+    "economic_structure_reproducibility_implementation": 10,
+    "tiers": {
+      "A": "85-100",
+      "B": "70-84",
+      "C": "50-69",
+      "D": "30-49",
+      "E": "0-29"
+    }
+  },
+  "research_principles": [
+    "Prioritize structural carry/basis and replicated trend families before indicator soup.",
+    "Separate alpha signal, sizing, exit, execution and risk-overlay hypotheses.",
+    "For high-cap futures, require net edge after taker/maker fees, funding, spread and conservative slippage.",
+    "Prefer parameter plateaus to single-point optima.",
+    "Apply White/SPA-style reality checks or FDR/other multiple-hypothesis controls across large sweeps.",
+    "Use purged chronological splits; do not randomly shuffle time series.",
+    "For microstructure strategies, backtest at the granularity needed to model queue/spread/latency; candle backtests are insufficient.",
+    "For carry, model collateral, funding timestamps, basis legging, borrow/custody and liquidation risk.",
+    "For pairs, re-test cointegration stability and hedge-ratio drift; never assume correlation implies mean reversion.",
+    "Treat martingale/grid averaging as negative controls unless hard inventory/liquidation limits prove otherwise."
+  ],
+  "family_count": 45,
+  "families": [
+    {
+      "family_id": "CARRY_FIXED_BASIS",
+      "name": "Fixed-maturity cash-and-carry basis",
+      "bucket": "carry",
+      "evidence_score": 94,
+      "confidence_tier": "A",
+      "evidence_level": "peer-reviewed structural + empirical",
+      "implementation_evidence": "widely implementable",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "spot",
+        "dated_futures",
+        "fees",
+        "borrow/collateral"
+      ],
+      "thesis": "Long spot / short rich futures when annualized basis exceeds all-in hurdle.",
+      "main_failure_modes": [
+        "basis compression before entry",
+        "exchange/custody risk",
+        "margin/liquidation",
+        "capital/borrow constraints"
+      ],
+      "source_keys": [
+        "SCHMELING_SCHRIMPF_TODOROV_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "critical"
+    },
+    {
+      "family_id": "CARRY_PERP_FUNDING",
+      "name": "Delta-neutral perpetual funding carry",
+      "bucket": "carry",
+      "evidence_score": 92,
+      "confidence_tier": "A",
+      "evidence_level": "structural + empirical",
+      "implementation_evidence": "multiple open-source frameworks",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "spot",
+        "perpetual",
+        "funding",
+        "basis",
+        "fees"
+      ],
+      "thesis": "Long spot / short perp when expected funding received exceeds basis, fees and financing.",
+      "main_failure_modes": [
+        "funding sign reversal",
+        "basis gap",
+        "leg mismatch",
+        "liquidation/counterparty"
+      ],
+      "source_keys": [
+        "HE_ETAL_2024",
+        "SCHMELING_SCHRIMPF_TODOROV_2026",
+        "HUMMINGBOT"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "critical"
+    },
+    {
+      "family_id": "DONCHIAN_VOL",
+      "name": "Donchian/channel breakout + volatility targeting",
+      "bucket": "trend",
+      "evidence_score": 91,
+      "confidence_tier": "A",
+      "evidence_level": "replicated technical-rule + momentum literature",
+      "implementation_evidence": "common in bot frameworks",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Break recent channel extremes; size inversely to volatility; exit on shorter channel/trailing stop.",
+      "main_failure_modes": [
+        "sideways whipsaw",
+        "gap/slippage",
+        "late entry"
+      ],
+      "source_keys": [
+        "HUDSON_URQUHART_2021",
+        "LIU_TSYVINSKI_2021",
+        "BUI_NGUYEN_2026",
+        "FREQTRADE",
+        "JESSE"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "critical"
+    },
+    {
+      "family_id": "TSMOM_RETURN_SIGN",
+      "name": "Own-return time-series momentum",
+      "bucket": "trend",
+      "evidence_score": 90,
+      "confidence_tier": "A",
+      "evidence_level": "peer-reviewed + realistic-assumption studies",
+      "implementation_evidence": "common/custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Long when own past return positive, short when negative; volatility-scale exposure.",
+      "main_failure_modes": [
+        "momentum crashes",
+        "volatility-estimation error",
+        "chop"
+      ],
+      "source_keys": [
+        "LIU_TSYVINSKI_2021",
+        "HAN_KANG_RYU_2024",
+        "GROBYS_ETAL_2025"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "critical"
+    },
+    {
+      "family_id": "PERP_FAIR_VALUE_ARB",
+      "name": "Funding-adjusted perpetual fair-value deviation",
+      "bucket": "carry",
+      "evidence_score": 88,
+      "confidence_tier": "A",
+      "evidence_level": "no-arbitrage theory + empirical",
+      "implementation_evidence": "custom implementation",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "spot",
+        "perpetual",
+        "funding",
+        "fees"
+      ],
+      "thesis": "Trade deviations from funding-adjusted no-arbitrage price/bounds.",
+      "main_failure_modes": [
+        "model misspecification",
+        "funding regime shift",
+        "execution latency",
+        "borrow constraints"
+      ],
+      "source_keys": [
+        "HE_ETAL_2024"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "critical"
+    },
+    {
+      "family_id": "FILTER_BREAKOUT",
+      "name": "Filter-rule breakout",
+      "bucket": "trend",
+      "evidence_score": 86,
+      "confidence_tier": "A-",
+      "evidence_level": "large-scale data-snooping-controlled study",
+      "implementation_evidence": "common/custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Enter after x% move beyond recent extrema, optionally requiring persistence.",
+      "main_failure_modes": [
+        "high turnover",
+        "whipsaw",
+        "threshold overfit"
+      ],
+      "source_keys": [
+        "HUDSON_URQUHART_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "BASIS_CROSS_SECTION",
+      "name": "Cross-sectional futures basis factor",
+      "bucket": "factor",
+      "evidence_score": 85,
+      "confidence_tier": "A",
+      "evidence_level": "peer-reviewed futures-specific",
+      "implementation_evidence": "custom implementation",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "futures",
+        "spot/index",
+        "basis",
+        "cross_section"
+      ],
+      "thesis": "Rank contracts by basis; exploit the empirically strong basis premium.",
+      "main_failure_modes": [
+        "crowding",
+        "basis crash",
+        "universe churn",
+        "costs"
+      ],
+      "source_keys": [
+        "CHI_ETAL_2023"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "BASIS_TERM_ROLL",
+      "name": "Basis term-structure / roll-down",
+      "bucket": "carry",
+      "evidence_score": 84,
+      "confidence_tier": "A-",
+      "evidence_level": "peer-reviewed structural support",
+      "implementation_evidence": "custom implementation",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "spot",
+        "multi_maturity_futures",
+        "funding/financing"
+      ],
+      "thesis": "Exploit relative richness across maturities while controlling delta.",
+      "main_failure_modes": [
+        "curve inversion",
+        "roll liquidity",
+        "margin fragmentation"
+      ],
+      "source_keys": [
+        "SCHMELING_SCHRIMPF_TODOROV_2026",
+        "CHI_ETAL_2023"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "MA_TREND",
+      "name": "Moving-average trend ensemble",
+      "bucket": "trend",
+      "evidence_score": 82,
+      "confidence_tier": "B+",
+      "evidence_level": "large-scale data-snooping-controlled study",
+      "implementation_evidence": "ubiquitous",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Price/fast MA above slow MA by threshold with persistence; reverse symmetrically.",
+      "main_failure_modes": [
+        "lag",
+        "whipsaw",
+        "parameter crowding"
+      ],
+      "source_keys": [
+        "HUDSON_URQUHART_2021",
+        "FREQTRADE",
+        "JESSE"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "VOLUME_TSMOM",
+      "name": "Volume-weighted time-series momentum",
+      "bucket": "trend",
+      "evidence_score": 82,
+      "confidence_tier": "B+",
+      "evidence_level": "promising working paper",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Weight market trend information by volume before forming TSMOM signal.",
+      "main_failure_modes": [
+        "volume manipulation",
+        "venue dependence",
+        "working-paper replication risk"
+      ],
+      "source_keys": [
+        "HUANG_SANGIORGI_URQUHART_2024"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "COINT_PAIR_OU",
+      "name": "Dynamic cointegration + OU half-life pairs",
+      "bucket": "stat_arb",
+      "evidence_score": 81,
+      "confidence_tier": "B+",
+      "evidence_level": "realistic execution study + replications",
+      "implementation_evidence": "custom",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "OHLCV",
+        "bid_ask_optional"
+      ],
+      "thesis": "Select cointegrated pair, estimate hedge ratio and mean-reversion half-life, trade spread z-score.",
+      "main_failure_modes": [
+        "cointegration break",
+        "spread trend",
+        "hedge-ratio drift"
+      ],
+      "source_keys": [
+        "TADI_KORTCHMESKI_2021",
+        "PALAZZI_ETAL_2025"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "ADAPTIVE_TREND_6H",
+      "name": "6h adaptive trend + rolling asset selection",
+      "bucket": "trend",
+      "evidence_score": 80,
+      "confidence_tier": "B+",
+      "evidence_level": "recent OOS preprint with costs",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV",
+        "market_cap/liquidity"
+      ],
+      "thesis": "6h trend signals + volatility trailing stop + rolling Sharpe/market-cap selection.",
+      "main_failure_modes": [
+        "preprint risk",
+        "small-cap capacity",
+        "selection overfit"
+      ],
+      "source_keys": [
+        "BUI_NGUYEN_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "VOL_REGIME_GATE",
+      "name": "Volatility regime gate / target-vol overlay",
+      "bucket": "risk_overlay",
+      "evidence_score": 80,
+      "confidence_tier": "B+",
+      "evidence_level": "broad momentum evidence + crypto tail-risk studies",
+      "implementation_evidence": "overlay",
+      "directional": false,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Scale exposure by inverse realized volatility and cap leverage in high-vol regimes.",
+      "main_failure_modes": [
+        "vol estimator lag",
+        "forced de-risk at lows"
+      ],
+      "source_keys": [
+        "GROBYS_ETAL_2025",
+        "BUI_NGUYEN_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "critical"
+    },
+    {
+      "family_id": "HIGH_LIQ_DAILY_MOM",
+      "name": "High-liquidity daily momentum",
+      "bucket": "trend",
+      "evidence_score": 79,
+      "confidence_tier": "B",
+      "evidence_level": "peer-reviewed liquidity-conditioned evidence",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "daily_OHLCV",
+        "liquidity"
+      ],
+      "thesis": "Use prior-day/short-window direction primarily in liquid/high-cap contracts.",
+      "main_failure_modes": [
+        "regime reversal",
+        "overnight-like discontinuities absent in 24/7",
+        "costs"
+      ],
+      "source_keys": [
+        "ZAREMBA_ETAL_2021",
+        "GROBYS_ETAL_2025"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "CTREND_FACTOR",
+      "name": "Multi-horizon price-volume trend factor",
+      "bucket": "factor",
+      "evidence_score": 78,
+      "confidence_tier": "B",
+      "evidence_level": "peer-reviewed broad cross-section",
+      "implementation_evidence": "custom/ML",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV",
+        "cross_section"
+      ],
+      "thesis": "Aggregate trend/volume information across horizons and rank assets.",
+      "main_failure_modes": [
+        "spot-to-futures transfer risk",
+        "cross-sectional momentum instability",
+        "feature overfit"
+      ],
+      "source_keys": [
+        "FIEBERG_ETAL_2025",
+        "HAN_KANG_RYU_2024"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "LIQUIDATION_RISK_GATE",
+      "name": "Liquidation/leverage stress gate",
+      "bucket": "risk_overlay",
+      "evidence_score": 78,
+      "confidence_tier": "B+",
+      "evidence_level": "peer-reviewed/perp-specific tail-risk evidence",
+      "implementation_evidence": "overlay",
+      "directional": false,
+      "market_neutral": false,
+      "required_data": [
+        "liquidations",
+        "OI",
+        "volatility",
+        "margin"
+      ],
+      "thesis": "Reduce/disable exposure as liquidation and leverage stress rises.",
+      "main_failure_modes": [
+        "data quality",
+        "venue fragmentation",
+        "sudden news shocks"
+      ],
+      "source_keys": [
+        "CHENG_ETAL_2021",
+        "ALEXANDER_DENG_ZOU_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "INTRADAY_BTC_TSMOM",
+      "name": "Intraday BTC time-series momentum",
+      "bucket": "trend",
+      "evidence_score": 77,
+      "confidence_tier": "B",
+      "evidence_level": "peer-reviewed intraday evidence",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "intraday_OHLCV",
+        "volume"
+      ],
+      "thesis": "Use early high-volume session return to forecast later high-volume session.",
+      "main_failure_modes": [
+        "session definition drift",
+        "venue fragmentation",
+        "execution costs"
+      ],
+      "source_keys": [
+        "SHEN_URQUHART_WANG_2022"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "OFI_TAKER",
+      "name": "Order-flow imbalance top-of-book taker alpha",
+      "bucket": "microstructure",
+      "evidence_score": 77,
+      "confidence_tier": "B",
+      "evidence_level": "recent futures-specific multi-asset preprint",
+      "implementation_evidence": "custom/HFT",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "L2_orderbook",
+        "trades",
+        "spread"
+      ],
+      "thesis": "Trade only when OFI + spread/VWAP state predicts short-horizon direction; prefer taker when edge exceeds fees.",
+      "main_failure_modes": [
+        "latency",
+        "fee/slippage",
+        "feature decay",
+        "venue competition"
+      ],
+      "source_keys": [
+        "BIEGANOWSKI_SLEPACZUK_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "VOL_MANAGED_MOM",
+      "name": "Volatility-managed momentum",
+      "bucket": "trend",
+      "evidence_score": 75,
+      "confidence_tier": "B",
+      "evidence_level": "momentum literature + tail-risk qualification",
+      "implementation_evidence": "common/custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Scale momentum exposure down as realized volatility rises.",
+      "main_failure_modes": [
+        "volatility spikes faster than estimator",
+        "deleveraging after loss",
+        "momentum crash"
+      ],
+      "source_keys": [
+        "GROBYS_ETAL_2025",
+        "LIU_TSYVINSKI_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "CROSS_VENUE_PERP_ARB",
+      "name": "Cross-venue perp price/funding spread",
+      "bucket": "arbitrage",
+      "evidence_score": 74,
+      "confidence_tier": "B",
+      "evidence_level": "structural + implementation evidence",
+      "implementation_evidence": "Hummingbot/custom",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "multi_venue_L2",
+        "funding",
+        "fees"
+      ],
+      "thesis": "Delta-neutral long cheap venue / short rich venue or harvest funding spread.",
+      "main_failure_modes": [
+        "transfer/collateral fragmentation",
+        "venue risk",
+        "leg risk"
+      ],
+      "source_keys": [
+        "HE_ETAL_2024",
+        "HUMMINGBOT"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "high"
+    },
+    {
+      "family_id": "COPULA_COINT_PAIR",
+      "name": "Copula mispricing on cointegrated pairs",
+      "bucket": "stat_arb",
+      "evidence_score": 73,
+      "confidence_tier": "B",
+      "evidence_level": "backtest research, less replicated",
+      "implementation_evidence": "custom",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Condition on cointegration then use copula tail/mispricing index for entries.",
+      "main_failure_modes": [
+        "copula regime change",
+        "tail dependence instability",
+        "selection overfit"
+      ],
+      "source_keys": [
+        "TADI_WITZANY_2023"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "QUARTER_HOUR_OFI",
+      "name": "Quarter-hour opening order imbalance",
+      "bucket": "microstructure",
+      "evidence_score": 72,
+      "confidence_tier": "B-",
+      "evidence_level": "very recent OOS futures preprint",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "trade_flow",
+        "clock_time",
+        "perpetual"
+      ],
+      "thesis": "Measure imbalance at quarter-hour opening; forecast 4–12h returns.",
+      "main_failure_modes": [
+        "new effect",
+        "crowding/decay",
+        "clock synchronization",
+        "event confounds"
+      ],
+      "source_keys": [
+        "KIM_HANSEN_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "KALMAN_SPREAD",
+      "name": "Kalman dynamic hedge-ratio spread",
+      "bucket": "stat_arb",
+      "evidence_score": 70,
+      "confidence_tier": "B-",
+      "evidence_level": "methodologically plausible + pairs evidence",
+      "implementation_evidence": "custom",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Dynamic hedge ratio via state-space model; z-score residual spread.",
+      "main_failure_modes": [
+        "filter lag",
+        "structural break",
+        "parameter sensitivity"
+      ],
+      "source_keys": [
+        "TADI_KORTCHMESKI_2021",
+        "PALAZZI_ETAL_2025"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "SUPPORT_RES_BREAK",
+      "name": "Support/resistance breakout",
+      "bucket": "trend",
+      "evidence_score": 70,
+      "confidence_tier": "B-",
+      "evidence_level": "large-scale technical-rule evidence but weaker cost results",
+      "implementation_evidence": "common",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Break rolling highest/lowest close by x%, with persistence.",
+      "main_failure_modes": [
+        "false breakout",
+        "support/resistance crowding",
+        "transaction costs"
+      ],
+      "source_keys": [
+        "HUDSON_URQUHART_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "FUNDING_AWARE_MM",
+      "name": "Funding-aware perpetual market making",
+      "bucket": "market_making",
+      "evidence_score": 69,
+      "confidence_tier": "B-",
+      "evidence_level": "new perpetual-specific research + theory",
+      "implementation_evidence": "custom",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "L2_orderbook",
+        "trades",
+        "funding"
+      ],
+      "thesis": "Tilt reservation price/inventory target using expected funding.",
+      "main_failure_modes": [
+        "funding forecast error",
+        "adverse selection",
+        "latency"
+      ],
+      "source_keys": [
+        "HE_ETAL_2024",
+        "HUMMINGBOT"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "L2_STATE_FLOW",
+      "name": "State-dependent L2 liquidity + trade-flow",
+      "bucket": "microstructure",
+      "evidence_score": 69,
+      "confidence_tier": "B-",
+      "evidence_level": "very recent futures-specific preprint",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "top20_L2",
+        "trades",
+        "macro_calendar"
+      ],
+      "thesis": "Classify liquidity state first; condition directional flow signal on state.",
+      "main_failure_modes": [
+        "weak cross-symbol portability",
+        "data engineering",
+        "state drift"
+      ],
+      "source_keys": [
+        "ORDERFLOW_STATE_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "VWAP_MID_MICRO",
+      "name": "VWAP-to-mid microstructure deviation",
+      "bucket": "microstructure",
+      "evidence_score": 68,
+      "confidence_tier": "B-",
+      "evidence_level": "recent futures feature evidence",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "L2_orderbook",
+        "trades"
+      ],
+      "thesis": "Use signed VWAP-to-mid deviation jointly with OFI/spread rather than alone.",
+      "main_failure_modes": [
+        "feature decay",
+        "latency",
+        "adverse selection"
+      ],
+      "source_keys": [
+        "BIEGANOWSKI_SLEPACZUK_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "BOLLINGER_BREAKOUT",
+      "name": "Bollinger volatility breakout",
+      "bucket": "trend",
+      "evidence_score": 66,
+      "confidence_tier": "C+",
+      "evidence_level": "general technical implementation + indirect evidence",
+      "implementation_evidence": "common",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Trade close outside volatility envelope in trend regime.",
+      "main_failure_modes": [
+        "band expansion after move",
+        "whipsaw",
+        "not directly established in futures literature"
+      ],
+      "source_keys": [
+        "FREQTRADE",
+        "JESSE",
+        "ANGHEL_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "AVELLANEDA_MM",
+      "name": "Avellaneda-Stoikov-style inventory market making",
+      "bucket": "market_making",
+      "evidence_score": 63,
+      "confidence_tier": "C+",
+      "evidence_level": "strong theory, crypto implementation; alpha depends on infra",
+      "implementation_evidence": "Hummingbot-like",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "L2_orderbook",
+        "trades",
+        "fees"
+      ],
+      "thesis": "Quote around reservation price with inventory-aware spread.",
+      "main_failure_modes": [
+        "adverse selection",
+        "latency",
+        "inventory runaway",
+        "fee tier"
+      ],
+      "source_keys": [
+        "HUMMINGBOT",
+        "BIEGANOWSKI_SLEPACZUK_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "OI_VOLUME_BREAKOUT",
+      "name": "OI/volume-confirmed breakout",
+      "bucket": "derivatives_flow",
+      "evidence_score": 62,
+      "confidence_tier": "C+",
+      "evidence_level": "microstructure/futures rationale; limited direct strategy proof",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV",
+        "open_interest",
+        "volume"
+      ],
+      "thesis": "Require breakout to be accompanied by OI/volume expansion.",
+      "main_failure_modes": [
+        "OI ambiguous long/short",
+        "late confirmation",
+        "venue fragmentation"
+      ],
+      "source_keys": [
+        "BIEGANOWSKI_SLEPACZUK_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "PAIR_DRL_EXEC",
+      "name": "Cointegration pair + DRL execution overlay",
+      "bucket": "stat_arb",
+      "evidence_score": 61,
+      "confidence_tier": "C+",
+      "evidence_level": "new 2026 OOS thesis/preprint",
+      "implementation_evidence": "custom/DRL",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "OHLCV",
+        "execution_features"
+      ],
+      "thesis": "Keep statistical pair selection deterministic; let DRL govern execution inside hard risk shield.",
+      "main_failure_modes": [
+        "RL overfit",
+        "nonstationarity",
+        "poor significance",
+        "complexity"
+      ],
+      "source_keys": [
+        "TADI_KORTCHMESKI_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "TURN_CANDLE",
+      "name": "Turn-of-the-candle 15m clock anomaly",
+      "bucket": "microstructure",
+      "evidence_score": 61,
+      "confidence_tier": "C+",
+      "evidence_level": "peer-reviewed OOS BTC anomaly",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "1m_or_tick",
+        "clock_time"
+      ],
+      "thesis": "Exploit abnormal return concentration around 15m boundaries.",
+      "main_failure_modes": [
+        "anomaly decay",
+        "fees/latency",
+        "spot-to-perp transfer"
+      ],
+      "source_keys": [
+        "SHANAEV_ETAL_2023"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "ADX_TREND_GATE",
+      "name": "Trend-strength regime gate",
+      "bucket": "risk_overlay",
+      "evidence_score": 60,
+      "confidence_tier": "C+",
+      "evidence_level": "practitioner/common; useful as conditional filter",
+      "implementation_evidence": "overlay",
+      "directional": false,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Allow breakout/trend only above trend-strength threshold; allow mean reversion below.",
+      "main_failure_modes": [
+        "lag",
+        "indicator redundancy"
+      ],
+      "source_keys": [
+        "FREQTRADE",
+        "JESSE"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "medium"
+    },
+    {
+      "family_id": "FUNDING_EXTREME_CONTRA",
+      "name": "Extreme funding contrarian overlay",
+      "bucket": "sentiment",
+      "evidence_score": 57,
+      "confidence_tier": "C",
+      "evidence_level": "economic intuition + indirect funding evidence",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "funding",
+        "basis",
+        "OI"
+      ],
+      "thesis": "Treat extreme crowded funding as a contrarian condition, not standalone entry.",
+      "main_failure_modes": [
+        "funding can stay extreme",
+        "trend dominance",
+        "crowding threshold drift"
+      ],
+      "source_keys": [
+        "HE_ETAL_2024",
+        "CHI_ETAL_2023"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "CROSS_SECTION_MOM",
+      "name": "Generic cross-sectional momentum",
+      "bucket": "factor",
+      "evidence_score": 55,
+      "confidence_tier": "C",
+      "evidence_level": "mixed/contradictory evidence",
+      "implementation_evidence": "custom",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV",
+        "cross_section"
+      ],
+      "thesis": "Rank winners/losers; long top / short bottom.",
+      "main_failure_modes": [
+        "evidence weak under realistic assumptions",
+        "momentum crashes",
+        "universe bias"
+      ],
+      "source_keys": [
+        "HAN_KANG_RYU_2024",
+        "GROBYS_ETAL_2025"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "MACD_TREND_CONFIRM",
+      "name": "MACD trend confirmation",
+      "bucket": "trend",
+      "evidence_score": 55,
+      "confidence_tier": "C",
+      "evidence_level": "bot/common indicator; weak standalone proof",
+      "implementation_evidence": "ubiquitous",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Use MACD only as confirmation for stronger trend/breakout signal.",
+      "main_failure_modes": [
+        "lag",
+        "indicator redundancy",
+        "data snooping"
+      ],
+      "source_keys": [
+        "FREQTRADE",
+        "JESSE",
+        "ANGHEL_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "SUPERTREND_ATR",
+      "name": "ATR/Supertrend-style trailing trend",
+      "bucket": "trend",
+      "evidence_score": 55,
+      "confidence_tier": "C",
+      "evidence_level": "implementation-heavy, limited independent proof",
+      "implementation_evidence": "common",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "ATR-derived trailing regime line; use as exit/overlay rather than standalone alpha.",
+      "main_failure_modes": [
+        "parameter crowding",
+        "chop",
+        "no strong futures-specific proof"
+      ],
+      "source_keys": [
+        "FREQTRADE",
+        "JESSE",
+        "ANGHEL_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "RSI_GATED_REVERSION",
+      "name": "RSI reversal with range/regime gate",
+      "bucket": "mean_reversion",
+      "evidence_score": 50,
+      "confidence_tier": "C",
+      "evidence_level": "large technical-rule study but mixed OOS + negative reality-check",
+      "implementation_evidence": "common",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Fade RSI extremes only when trend strength is low and spread/cost permits.",
+      "main_failure_modes": [
+        "fading strong trend",
+        "parameter mining",
+        "high turnover"
+      ],
+      "source_keys": [
+        "HUDSON_URQUHART_2021",
+        "ANGHEL_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "BOLLINGER_REVERSION",
+      "name": "Bollinger mean reversion with ADX gate",
+      "bucket": "mean_reversion",
+      "evidence_score": 49,
+      "confidence_tier": "C",
+      "evidence_level": "common bot pattern; limited robust proof",
+      "implementation_evidence": "common",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Fade outer band toward mean only in low-trend regimes.",
+      "main_failure_modes": [
+        "volatility expansion",
+        "trend trap",
+        "costs"
+      ],
+      "source_keys": [
+        "FREQTRADE",
+        "JESSE",
+        "ANGHEL_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "Z_SCORE_REVERSION",
+      "name": "Single-asset rolling z-score mean reversion",
+      "bucket": "mean_reversion",
+      "evidence_score": 46,
+      "confidence_tier": "D+",
+      "evidence_level": "generic, not strongly proven for high-cap futures",
+      "implementation_evidence": "common",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Fade normalized deviation from rolling mean only under explicit stationary/range filter.",
+      "main_failure_modes": [
+        "non-stationary price",
+        "trend trap",
+        "false mean"
+      ],
+      "source_keys": [
+        "ANGHEL_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "SHORT_TERM_REVERSAL",
+      "name": "Generic short-term reversal",
+      "bucket": "mean_reversion",
+      "evidence_score": 45,
+      "confidence_tier": "D+",
+      "evidence_level": "liquidity-dependent; weaker for liquid high-cap",
+      "implementation_evidence": "common",
+      "directional": true,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Fade recent extreme move only in regimes where liquidity evidence supports reversal.",
+      "main_failure_modes": [
+        "high-cap often exhibits momentum instead",
+        "trend continuation",
+        "fees"
+      ],
+      "source_keys": [
+        "ZAREMBA_ETAL_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "TRIANGULAR_ARB",
+      "name": "Single-venue triangular arbitrage",
+      "bucket": "arbitrage",
+      "evidence_score": 42,
+      "confidence_tier": "D+",
+      "evidence_level": "structural but highly latency/fee competed",
+      "implementation_evidence": "common custom",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "L2_orderbook",
+        "fees"
+      ],
+      "thesis": "Trade temporary cross-rate inconsistency if executable edge exceeds all costs.",
+      "main_failure_modes": [
+        "latency",
+        "partial fills",
+        "fee drag",
+        "competition"
+      ],
+      "source_keys": [
+        "HUMMINGBOT"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "low"
+    },
+    {
+      "family_id": "PURE_MAKER_NO_TOX",
+      "name": "Pure maker MM without toxicity filter",
+      "bucket": "market_making",
+      "evidence_score": 40,
+      "confidence_tier": "D",
+      "evidence_level": "negative microstructure evidence during stress",
+      "implementation_evidence": "common",
+      "directional": false,
+      "market_neutral": true,
+      "required_data": [
+        "L2_orderbook"
+      ],
+      "thesis": "Baseline only; deliberately included as negative control.",
+      "main_failure_modes": [
+        "adverse selection",
+        "flash crashes",
+        "inventory accumulation"
+      ],
+      "source_keys": [
+        "BIEGANOWSKI_SLEPACZUK_2026"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "reject_or_control"
+    },
+    {
+      "family_id": "GRID_REVERSION",
+      "name": "Symmetric grid mean reversion",
+      "bucket": "bot_popular",
+      "evidence_score": 28,
+      "confidence_tier": "D",
+      "evidence_level": "bot-popular, weak independent edge proof",
+      "implementation_evidence": "Passivbot-like",
+      "directional": false,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV",
+        "L2_optional"
+      ],
+      "thesis": "Place laddered contrarian entries and close on small bounce.",
+      "main_failure_modes": [
+        "unbounded inventory",
+        "trend catastrophe",
+        "funding drag",
+        "liquidation"
+      ],
+      "source_keys": [
+        "PASSIVBOT"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "reject_or_control"
+    },
+    {
+      "family_id": "MARTINGALE_DCA",
+      "name": "Martingale-inspired futures DCA",
+      "bucket": "bot_popular",
+      "evidence_score": 15,
+      "confidence_tier": "E",
+      "evidence_level": "implementation evidence only; severe tail risk",
+      "implementation_evidence": "Passivbot-like",
+      "directional": false,
+      "market_neutral": false,
+      "required_data": [
+        "OHLCV"
+      ],
+      "thesis": "Average into losing positions to improve entry; included only as risk/negative-control family.",
+      "main_failure_modes": [
+        "ruin/liquidation",
+        "convex losses",
+        "trend persistence"
+      ],
+      "source_keys": [
+        "PASSIVBOT",
+        "CHENG_ETAL_2021"
+      ],
+      "parameter_origin": "mixed",
+      "research_priority": "reject"
+    }
+  ],
+  "paper_parameter_anchors": {
+    "HUDSON_URQUHART_2021": {
+      "moving_average": {
+        "q_p_n": [
+          2,
+          5,
+          10,
+          15,
+          20,
+          25,
+          50,
+          100,
+          200
+        ],
+        "x_pct": [
+          0,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          5
+        ],
+        "persistence_d": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "fixed_hold_k": [
+          3,
+          5
+        ],
+        "reported_rule_count": 7980
+      },
+      "filter": {
+        "x_pct": [
+          0,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          5
+        ],
+        "persistence_d": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "recent_extreme_j": [
+          2,
+          5,
+          10,
+          15,
+          20,
+          25,
+          50,
+          100,
+          200
+        ],
+        "fixed_hold_k": [
+          3,
+          5
+        ],
+        "reported_rule_count": 963
+      },
+      "support_resistance": {
+        "x_pct": [
+          0,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          5
+        ],
+        "persistence_d": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "level_window_j": [
+          2,
+          5,
+          10,
+          15,
+          20,
+          25,
+          50,
+          100,
+          200
+        ],
+        "fixed_hold_k": [
+          3,
+          5
+        ],
+        "reported_rule_count": 945
+      },
+      "rsi_oscillator": {
+        "rsi_h": [
+          2,
+          5,
+          10,
+          15,
+          20,
+          25,
+          50,
+          100,
+          200
+        ],
+        "v_around_50": [
+          2,
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "persistence_d": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "fixed_hold_k": [
+          2,
+          5
+        ],
+        "reported_rule_count": 810
+      },
+      "channel_breakout": {
+        "x_pct": [
+          0,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          5
+        ],
+        "persistence_d": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "channel_window_j": [
+          2,
+          5,
+          10,
+          25,
+          50,
+          75,
+          100,
+          150,
+          200
+        ],
+        "channel_width_c_note": "Paper HTML lists {0.05,0.01,0.5,0.1,0.25,0.5}; duplicate 0.5 appears in source, so do not silently infer a missing value.",
+        "fixed_hold_k": [
+          3,
+          5
+        ],
+        "reported_rule_count": 4536
+      },
+      "reported_total_rules": 14919,
+      "transfer_warning": "These anchors were tested on daily spot crypto data, not modern perpetual futures. Use as priors/search anchors, not as claimed futures-optimal settings."
+    }
+  },
+  "sources": {
+    "LIU_TSYVINSKI_2021": {
+      "title": "Risks and Returns of Cryptocurrency",
+      "authors": "Liu & Tsyvinski",
+      "year": 2021,
+      "venue": "Review of Financial Studies",
+      "url": "https://academic.oup.com/rfs/article/34/6/2689/5912024",
+      "role": "Time-series momentum and attention predictability; foundational crypto return evidence."
+    },
+    "HUDSON_URQUHART_2021": {
+      "title": "Technical trading and cryptocurrencies",
+      "authors": "Hudson & Urquhart",
+      "year": 2021,
+      "venue": "Annals of Operations Research",
+      "url": "https://doi.org/10.1007/s10479-019-03357-1",
+      "role": "14,919 technical rules; bootstrap, FWER/FDR, costs, in/out-of-sample."
+    },
+    "ANGHEL_2021": {
+      "title": "A reality check on trading rule performance in the cryptocurrency market: Machine Learning vs. Technical Analysis",
+      "authors": "Anghel",
+      "year": 2021,
+      "venue": "Finance Research Letters",
+      "url": "https://doi.org/10.1016/j.frl.2020.101655",
+      "role": "Negative control: after data-snooping and frictions, significant excess returns are rare."
+    },
+    "HAN_KANG_RYU_2024": {
+      "title": "Time-Series and Cross-Sectional Momentum in the Cryptocurrency Market: A Comprehensive Analysis under Realistic Assumptions",
+      "authors": "Han, Kang & Ryu",
+      "year": 2024,
+      "venue": "SSRN / working paper",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4675565",
+      "role": "Strong time-series momentum; cross-sectional momentum much weaker under realistic assumptions."
+    },
+    "HUANG_SANGIORGI_URQUHART_2024": {
+      "title": "Cryptocurrency Volume-Weighted Time Series Momentum",
+      "authors": "Huang, Sangiorgi & Urquhart",
+      "year": 2024,
+      "venue": "SSRN",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4825389",
+      "role": "Volume-weighted market signal improves time-series momentum."
+    },
+    "BUI_NGUYEN_2026": {
+      "title": "Systematic Trend-Following with Adaptive Portfolio Construction",
+      "authors": "Bui & Nguyen",
+      "year": 2026,
+      "venue": "arXiv",
+      "url": "https://arxiv.org/abs/2602.11708",
+      "role": "6h trend, adaptive portfolio, volatility trailing stops; broad OOS crypto-perpetual backtest."
+    },
+    "SHEN_URQUHART_WANG_2022": {
+      "title": "Bitcoin intraday time series momentum",
+      "authors": "Shen, Urquhart & Wang",
+      "year": 2022,
+      "venue": "Financial Review",
+      "url": "https://doi.org/10.1111/fire.12290",
+      "role": "Intraday BTC momentum; first high-volume half-hour predicts last high-volume half-hour."
+    },
+    "ZAREMBA_ETAL_2021": {
+      "title": "Up or down? Short-term reversal, momentum, and liquidity effects in cryptocurrency markets",
+      "authors": "Zaremba et al.",
+      "year": 2021,
+      "venue": "International Review of Financial Analysis",
+      "url": "https://doi.org/10.1016/j.irfa.2021.101908",
+      "role": "Liquidity-dependent short-horizon effects; most liquid cryptocurrencies exhibit momentum."
+    },
+    "GROBYS_ETAL_2025": {
+      "title": "Cryptocurrency momentum has (not) its moments",
+      "authors": "Grobys et al.",
+      "year": 2025,
+      "venue": "Financial Markets and Portfolio Management",
+      "url": "https://doi.org/10.1007/s11408-025-00474-9",
+      "role": "Important contradictory/qualification evidence for momentum; tail risk and volatility scaling."
+    },
+    "FIEBERG_ETAL_2025": {
+      "title": "A Trend Factor for the Cross Section of Cryptocurrency Returns",
+      "authors": "Fieberg et al.",
+      "year": 2025,
+      "venue": "Journal of Financial and Quantitative Analysis",
+      "url": "https://www.cambridge.org/core/journals/journal-of-financial-and-quantitative-analysis/article/trend-factor-for-the-cross-section-of-cryptocurrency-returns/",
+      "role": "CTREND aggregates price/volume across horizons; 3,000+ coins; robust cross-sectional predictability."
+    },
+    "SCHMELING_SCHRIMPF_TODOROV_2026": {
+      "title": "Crypto Carry",
+      "authors": "Schmeling, Schrimpf & Todorov",
+      "year": 2026,
+      "venue": "Management Science",
+      "url": "https://doi.org/10.1287/mnsc.2024.05069",
+      "role": "Futures-spot carry in BTC/ETH; structural limits to arbitrage; carry can be exceptionally large."
+    },
+    "HE_ETAL_2024": {
+      "title": "Fundamentals of Perpetual Futures",
+      "authors": "He, Manela, Ross & von Wachter",
+      "year": 2024,
+      "venue": "arXiv / working paper",
+      "url": "https://arxiv.org/abs/2212.06888",
+      "role": "No-arbitrage perpetual pricing/bounds; empirical deviations and high-Sharpe implied arbitrage."
+    },
+    "CHI_ETAL_2023": {
+      "title": "An empirical investigation on risk factors in cryptocurrency futures",
+      "authors": "Chi et al.",
+      "year": 2023,
+      "venue": "Journal of Futures Markets",
+      "url": "https://doi.org/10.1002/fut.22425",
+      "role": "Basis, momentum and basis-momentum futures factors; basis is especially important."
+    },
+    "TADI_KORTCHMESKI_2021": {
+      "title": "Evaluation of Dynamic Cointegration-Based Pairs Trading Strategy in the Cryptocurrency Market",
+      "authors": "Tadi & Kortchmeski",
+      "year": 2021,
+      "venue": "arXiv / published version",
+      "url": "https://arxiv.org/abs/2109.10662",
+      "role": "Minute signals, realistic bid/ask execution on BitMEX, cointegration + OU half-life."
+    },
+    "TADI_WITZANY_2023": {
+      "title": "Copula-Based Trading of Cointegrated Cryptocurrency Pairs",
+      "authors": "Tadi & Witzany",
+      "year": 2023,
+      "venue": "arXiv",
+      "url": "https://arxiv.org/abs/2305.06961",
+      "role": "Copula mispricing on cointegrated pairs; risk-adjusted outperformance in backtests."
+    },
+    "PALAZZI_ETAL_2025": {
+      "title": "Trading Games: Beating Passive Strategies in the Bullish Crypto Market",
+      "authors": "Palazzi et al.",
+      "year": 2025,
+      "venue": "Journal of Futures Markets",
+      "url": "https://onlinelibrary.wiley.com/doi/10.1002/fut.70018",
+      "role": "Cointegrated pairs trading with systematic parameter optimization."
+    },
+    "BIEGANOWSKI_SLEPACZUK_2026": {
+      "title": "Explainable Patterns in Cryptocurrency Microstructure",
+      "authors": "Bieganowski & Ślepaczuk",
+      "year": 2026,
+      "venue": "arXiv",
+      "url": "https://arxiv.org/abs/2602.00776",
+      "role": "Binance Futures 1-second LOB/trades; OFI/spread/VWAP features; taker vs maker robustness."
+    },
+    "KIM_HANSEN_2026": {
+      "title": "The Quarter-Hour Effect: Periodic Algorithmic Trading and Return Predictability in Cryptocurrency Futures",
+      "authors": "Kim & Hansen",
+      "year": 2026,
+      "venue": "arXiv",
+      "url": "https://arxiv.org/abs/2607.09426",
+      "role": "Six Binance perpetuals; quarter-hour order imbalance forecasts 4–12h returns OOS."
+    },
+    "ORDERFLOW_STATE_2026": {
+      "title": "When Does Order Flow Matter? State-Dependent L2 Liquidity-State Transitions in Crypto Futures",
+      "authors": "2026 preprint authors",
+      "year": 2026,
+      "venue": "arXiv",
+      "url": "https://arxiv.org/abs/2607.09230",
+      "role": "BTC/ETH Binance perpetual L2 state transitions and flow interaction."
+    },
+    "SHANAEV_ETAL_2023": {
+      "title": "Turn-of-the-candle effect in bitcoin returns",
+      "authors": "Shanaev, Vasenin & Stepanov",
+      "year": 2023,
+      "venue": "Heliyon",
+      "url": "https://doi.org/10.1016/j.heliyon.2023.e14236",
+      "role": "15-minute clock anomaly with out-of-sample evidence."
+    },
+    "CHENG_ETAL_2021": {
+      "title": "Liquidation, Leverage and Optimal Margin in Bitcoin Futures Markets",
+      "authors": "Cheng et al.",
+      "year": 2021,
+      "venue": "Applied Economics / arXiv",
+      "url": "https://arxiv.org/abs/2102.04591",
+      "role": "BitMEX perpetual liquidation and leverage tail-risk evidence."
+    },
+    "ALEXANDER_DENG_ZOU_2021": {
+      "title": "Hedging with Bitcoin Futures: The Effect of Liquidation Loss Aversion and Aggressive Trading",
+      "authors": "Alexander, Deng & Zou",
+      "year": 2021,
+      "venue": "working/published research",
+      "url": "https://arxiv.org/abs/2101.01261",
+      "role": "Optimal hedging jointly considers hedge effectiveness and liquidation probability."
+    },
+    "FREQTRADE": {
+      "title": "Freqtrade",
+      "authors": "Open-source project",
+      "year": 2026,
+      "venue": "GitHub",
+      "url": "https://github.com/freqtrade/freqtrade",
+      "role": "Bot implementation evidence: futures, backtesting, hyperopt, ML tooling."
+    },
+    "HUMMINGBOT": {
+      "title": "Hummingbot",
+      "authors": "Open-source project",
+      "year": 2026,
+      "venue": "GitHub",
+      "url": "https://github.com/hummingbot/hummingbot",
+      "role": "Bot implementation evidence: arbitrage, market making, perpetual connectors."
+    },
+    "JESSE": {
+      "title": "Jesse",
+      "authors": "Open-source project",
+      "year": 2026,
+      "venue": "GitHub",
+      "url": "https://github.com/jesse-ai/jesse",
+      "role": "Bot/research framework: multi-symbol, leveraged/short, optimization."
+    },
+    "PASSIVBOT": {
+      "title": "Passivbot",
+      "authors": "Open-source project",
+      "year": 2026,
+      "venue": "GitHub",
+      "url": "https://github.com/enarjord/passivbot",
+      "role": "Perpetual futures grid/contrarian market-making implementation; martingale-inspired risk."
+    },
+    "FANG_ETAL_2022_SURVEY": {
+      "title": "Cryptocurrency trading: a comprehensive survey",
+      "authors": "Fang et al.",
+      "year": 2022,
+      "venue": "Financial Innovation",
+      "url": "https://doi.org/10.1186/s40854-021-00321-6",
+      "role": "Broad survey covering 146 cryptocurrency trading research papers."
+    },
+    "MANN_2025_REVIEW": {
+      "title": "Quantitative Alpha in Crypto Markets: A Systematic Review",
+      "authors": "Mann",
+      "year": 2025,
+      "venue": "SSRN",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5225612",
+      "role": "Systematic synthesis of quantitative crypto alpha studies from 2018–2025."
+    },
+    "NEUBERT_ETAL_2026_PERP_REVIEW": {
+      "title": "Cryptocurrency Perpetual Futures and Swaps: A Systematic Literature Review",
+      "authors": "Neubert et al.",
+      "year": 2026,
+      "venue": "Preprint / SSRN",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6639558",
+      "role": "Focused review of perpetual-futures pricing, funding, arbitrage, microstructure and liquidation literature."
+    }
+  }
+}

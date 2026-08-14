@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "research_round", "verdict", "candidates", "reasoning_packet"],
+  "properties": {
+    "contract_version": {"const": "2.0.2"},
+    "research_round": {"type": "integer", "minimum": 1},
+    "verdict": {"enum": ["CONTINUE", "REVISE", "REJECT"]},
+    "candidates": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_id", "hypothesis_id", "family", "mechanism", "rules", "config",
+          "primary_change", "evaluation_plan", "evidence_chain", "falsification", "expected_success_regimes", "expected_failure_regimes"
+        ],
+        "properties": {
+          "candidate_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+          "hypothesis_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+          "family": {"enum": ["DONCHIAN_VOL", "TSMOM_RETURN_SIGN", "FILTER_BREAKOUT", "MA_TREND", "VOLUME_TSMOM", "VOL_MANAGED_MOM", "VOL_REGIME_GATE", "SUPPORT_RES_BREAK"]},
+          "mechanism": {"type": "string", "minLength": 1, "maxLength": 1500},
+          "rules": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["signal", "entry", "exit", "risk"],
+            "properties": {
+              "signal": {"type": "string", "minLength": 1, "maxLength": 1500},
+              "entry": {"type": "string", "minLength": 1, "maxLength": 1500},
+              "exit": {"type": "string", "minLength": 1, "maxLength": 1500},
+              "risk": {"type": "string", "minLength": 1, "maxLength": 1500}
+            }
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["family", "symbol", "timeframe", "experiment_id", "params", "control_mode"],
+            "properties": {
+              "family": {"enum": ["DONCHIAN_VOL", "TSMOM_RETURN_SIGN", "FILTER_BREAKOUT", "MA_TREND", "VOLUME_TSMOM", "VOL_MANAGED_MOM", "VOL_REGIME_GATE", "SUPPORT_RES_BREAK"]},
+              "symbol": {
+                "enum": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "LINKUSDT", "LTCUSDT", "TRXUSDT", "DOGEUSDT"]
+              },
+              "timeframe": {"enum": ["5m", "15m", "1h", "4h", "6h", "12h", "1d"]},
+              "experiment_id": {"type": "string", "pattern": "^TDH-LIT-[0-9]{4}$"},
+              "params": {"type": "object"},
+              "control_mode": {"const": "PERFORMANCE"}
+            }
+          },
+          "primary_change": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["component", "from", "to", "atomic_bundle", "rationale"],
+            "properties": {
+              "component": {"enum": ["registered_strategy_seed", "strategy_family", "registered_parameter_seed", "symbol", "timeframe"]},
+              "from": {},
+              "to": {},
+              "atomic_bundle": {"type": "boolean"},
+              "rationale": {"type": "string", "minLength": 1, "maxLength": 600}
+            }
+          },
+          "evaluation_plan": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["plan_id", "s1_trial_budget"],
+            "properties": {
+              "plan_id": {"const": "candidate-baseline-negative-v1"},
+              "s1_trial_budget": {"const": 3}
+            }
+          },
+          "evidence_chain": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_run_id", "source_round", "source_result_sha256", "source_candidate_id",
+              "diagnosis", "financial_interpretation", "selected_approach", "causal_bridge",
+              "expected_metric_effect", "discarded_alternatives", "why_not_parameter_tuning"
+            ],
+            "properties": {
+              "source_run_id": {"type": "string", "minLength": 1, "maxLength": 200},
+              "source_round": {"type": "integer", "minimum": 0},
+              "source_result_sha256": {"type": "string", "minLength": 7, "maxLength": 64},
+              "source_candidate_id": {"type": "string", "minLength": 1, "maxLength": 128},
+              "diagnosis": {
+                "enum": [
+                  "GENESIS_HYPOTHESIS", "NEGATIVE_EXPECTANCY", "NO_INCREMENTAL_EDGE",
+                  "CONTROL_FAILURE", "LOW_WIN_RATE", "PAYOFF_COMPRESSION", "EXCESS_DRAWDOWN",
+                  "LOW_FREQUENCY", "MIXED_METRIC_FAILURE", "PROMISING_BUT_UNCONFIRMED",
+                  "PAYOFF_FAMILY_CEILING", "SIGNAL_PRECISION_CEILING", "RISK_REGIME_FAILURE",
+                  "NO_INCREMENTAL_FAMILY_EDGE", "FRAGILE_REGIME_FIT"
+                ]
+              },
+              "financial_interpretation": {"type": "string", "minLength": 1, "maxLength": 1200},
+              "selected_approach": {
+                "enum": [
+                  "GENESIS_REGISTERED_HYPOTHESIS", "CHANGE_STRATEGY_FAMILY",
+                  "VALIDATE_PARAMETER_NEIGHBORHOOD", "CHANGE_SYMBOL", "CHANGE_TIMEFRAME",
+                  "ADD_REGISTERED_RISK_OVERLAY"
+                ]
+              },
+              "causal_bridge": {"type": "string", "minLength": 1, "maxLength": 1200},
+              "expected_metric_effect": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["primary_metric", "direction", "rationale"],
+                "properties": {
+                  "primary_metric": {
+                    "enum": [
+                      "trade_count", "net_win_rate", "realized_payoff_ratio", "max_drawdown_pct",
+                      "expectancy_r", "profit_factor", "weekday_trades"
+                    ]
+                  },
+                  "direction": {"enum": ["increase", "decrease"]},
+                  "rationale": {"type": "string", "minLength": 1, "maxLength": 600}
+                }
+              },
+              "discarded_alternatives": {
+                "type": "array", "minItems": 1, "maxItems": 3,
+                "items": {"type": "string", "minLength": 1, "maxLength": 400}
+              },
+              "why_not_parameter_tuning": {"type": "string", "minLength": 1, "maxLength": 1200}
+            }
+          },
+          "falsification": {"type": "string", "minLength": 1, "maxLength": 1000},
+          "expected_success_regimes": {"type": "array", "items": {"type": "string", "maxLength": 500}},
+          "expected_failure_regimes": {"type": "array", "items": {"type": "string", "maxLength": 500}}
+        }
+      }
+    },
+    "reasoning_packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assumptions", "evidence", "counterevidence", "uncertainty", "decision_change_evidence"],
+      "properties": {
+        "assumptions": {"type": "array", "items": {"type": "string", "maxLength": 1000}},
+        "evidence": {"type": "array", "items": {"type": "string", "maxLength": 1000}},
+        "counterevidence": {"type": "array", "items": {"type": "string", "maxLength": 1000}},
+        "uncertainty": {"type": "array", "items": {"type": "string", "maxLength": 1000}},
+        "decision_change_evidence": {"type": "array", "items": {"type": "string", "maxLength": 1000}}
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version", "research_round", "proposal_sha256", "verdict",
+    "approved_candidate_ids", "findings", "reasoning_packet"
+  ],
+  "properties": {
+    "contract_version": {"const": "2.0.2"},
+    "research_round": {"type": "integer", "minimum": 1},
+    "proposal_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "verdict": {"enum": ["REJECT", "REVISE", "CONTINUE"]},
+    "approved_candidate_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding_id", "severity", "claim", "evidence"],
+        "properties": {
+          "finding_id": {"type": "string"},
+          "severity": {"enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]},
+          "claim": {"type": "string"},
+          "evidence": {"type": "string"}
+        }
+      }
+    },
+    "reasoning_packet": {"type": "object"}
+  }
+}
