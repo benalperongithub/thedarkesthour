@@ -19,9 +19,16 @@ if spec is None or spec.loader is None:
 base = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = base
 spec.loader.exec_module(base)
-for name in dir(base):
-    if not name.startswith('__'):
-        globals()[name] = getattr(base, name)
+def _export_base_namespace(module: Any) -> None:
+    """Copy inherited exports without allowing a copied global to corrupt iteration."""
+    namespace = globals()
+    for export_name in tuple(dir(module)):
+        if not export_name.startswith('__'):
+            namespace[export_name] = getattr(module, export_name)
+
+
+_export_base_namespace(base)
+del _export_base_namespace
 
 
 ROOT = Path(__file__).resolve().parent
