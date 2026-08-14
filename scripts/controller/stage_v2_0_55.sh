@@ -10,8 +10,8 @@ REPO="/home/tdw/the-darkest-hour"
 REPO_SOURCE="$REPO/controller/staging/v2.0.55"
 GATE="/usr/local/sbin/tdh-lab-admin-gate"
 
-EXPECTED_CONTROLLER_SHA256="a46c9d25402057c9240866cbbc139ac6bb80978b10df968a9812aacd6f580296"
-EXPECTED_TEST_SHA256="2d892819016fda422be938dc8564f35ed35bc5a522818229e3ccc52430392b73"
+EXPECTED_CONTROLLER_SHA256="25a1554ffda30d27db877030fd3c02496d3f74665f0e0b51cd20d1145f9b53aa"
+EXPECTED_TEST_SHA256="e9d0bfa9be1ea992a9c1172f03c03f0c6f9c9256ef659975cf348614e396a45c"
 
 cleanup() {
     if [[ -d "$TMP" && "$TMP" == "$BASE/staging/.v2.0.55-build-"* ]]; then
