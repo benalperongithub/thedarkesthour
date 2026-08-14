@@ -1257,22 +1257,12 @@ class Controller(V246_DISPATCH_BASE):
             and isinstance(critic.get('findings'), list)
             and bool(critic['findings'])
         )
+        if not valid_advisory:
+            return
+
         sd = rd / 'avenox-subagents'
         sd.mkdir(exist_ok=True)
         dispatch_path = sd / 'FRONTIER_SCOUT_DISPATCH_V255.json'
-
-        if not valid_advisory:
-            atomic_json(dispatch_path, {
-                'version': V255_SCOUT_CACHE_CONTINUITY_VERSION,
-                'status': 'SKIPPED_INVALID_BOUNDED_ADVISORY',
-                'advisory_source_status': source_status,
-                'provider_invoked': False,
-                'automatically_registered': False,
-                'controller_only_promotion': True,
-                'trading_actions': False,
-                'exchange_api_access': False,
-            })
-            return
 
         try:
             scout = self._run_frontier_scout(

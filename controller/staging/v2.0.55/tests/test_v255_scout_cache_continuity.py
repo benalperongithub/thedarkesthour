@@ -97,11 +97,7 @@ class V255ScoutCacheContinuityTests(unittest.TestCase):
                 advisory,
             )
             self.assertEqual(calls, [])
-            dispatch = json.loads(
-                (root / "avenox-subagents" / "FRONTIER_SCOUT_DISPATCH_V255.json").read_text()
-            )
-            self.assertEqual(dispatch["status"], "SKIPPED_INVALID_BOUNDED_ADVISORY")
-            self.assertFalse(dispatch["provider_invoked"])
+            self.assertFalse((root / "avenox-subagents").exists())
 
     def test_fresh_completed_advisory_still_dispatches(self):
         controller = self.controller()
