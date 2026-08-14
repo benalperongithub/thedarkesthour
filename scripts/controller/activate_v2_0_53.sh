@@ -76,8 +76,15 @@ echo "===== 3. BUILD AND VERIFY UPDATED SYSTEMD UNIT ====="
 test -f "$UNIT"
 cp -a -- "$UNIT" "$BACKUP"
 
-OLD_COUNT="$(grep -oF "$OLD_VERSION" "$UNIT" | wc -l)"
-NEW_COUNT="$(grep -oF "$NEW_VERSION" "$UNIT" | wc -l)"
+read -r OLD_COUNT NEW_COUNT < <(
+    python3 - "$UNIT" "$OLD_VERSION" "$NEW_VERSION" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+print(text.count(sys.argv[2]), text.count(sys.argv[3]))
+PY
+)
 
 if [[ "$OLD_COUNT" -ne 5 || "$NEW_COUNT" -ne 0 ]]; then
     echo "BLOCKED: unexpected unit version references"
