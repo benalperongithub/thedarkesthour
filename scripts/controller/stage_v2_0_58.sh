@@ -59,12 +59,23 @@ mkdir -p "$TMP"
 cp -a "$SRC/." "$TMP/"
 rm -f "$TMP/SHA256SUMS"
 
-install -m 0755 +    "$REPO_SOURCE/strategy_lab_controller.py" +    "$TMP/strategy_lab_controller.py"
-install -m 0644 +    "$REPO_SOURCE/research/research_kernel.py" +    "$TMP/research/research_kernel.py"
-install -m 0644 +    "$REPO_SOURCE/research/frontier-scout-approved-seeds-v1.jsonl" +    "$TMP/research/frontier-scout-approved-seeds-v1.jsonl"
-install -m 0644 +    "$REPO_SOURCE/tests/test_v258_controller_admission.py" +    "$TMP/tests/test_v258_controller_admission.py"
+install -T -m 0755 -- \
+    "$REPO_SOURCE/strategy_lab_controller.py" \
+    "$TMP/strategy_lab_controller.py"
+install -T -m 0644 -- \
+    "$REPO_SOURCE/research/research_kernel.py" \
+    "$TMP/research/research_kernel.py"
+install -T -m 0644 -- \
+    "$REPO_SOURCE/research/frontier-scout-approved-seeds-v1.jsonl" \
+    "$TMP/research/frontier-scout-approved-seeds-v1.jsonl"
+install -T -m 0644 -- \
+    "$REPO_SOURCE/tests/test_v258_controller_admission.py" \
+    "$TMP/tests/test_v258_controller_admission.py"
 
-python3 -m py_compile +    "$TMP/strategy_lab_controller.py" +    "$TMP/research/research_kernel.py" +    "$TMP/tests/test_v258_controller_admission.py"
+python3 -m py_compile \
+    "$TMP/strategy_lab_controller.py" \
+    "$TMP/research/research_kernel.py" \
+    "$TMP/tests/test_v258_controller_admission.py"
 
 python3 - "$TMP/research/frontier-scout-approved-seeds-v1.jsonl" <<'PY'
 import json
@@ -88,7 +99,11 @@ PY
 echo "===== 5. PUBLISH STAGING ATOMICALLY ====="
 mv -- "$TMP" "$DST"
 
-sha256sum +    "$DST/strategy_lab_controller.py" +    "$DST/research/research_kernel.py" +    "$DST/research/frontier-scout-approved-seeds-v1.jsonl" +    "$DST/tests/test_v258_controller_admission.py"
+sha256sum \
+    "$DST/strategy_lab_controller.py" \
+    "$DST/research/research_kernel.py" \
+    "$DST/research/frontier-scout-approved-seeds-v1.jsonl" \
+    "$DST/tests/test_v258_controller_admission.py"
 
 echo "SERVICE_STATE=$(systemctl is-active "$SERVICE" || true)"
 echo "TDH_V258_STAGE_COMPLETE"
