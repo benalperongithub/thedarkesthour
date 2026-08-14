@@ -274,9 +274,9 @@ def _v257_extract_scout_payload(outer: Any) -> dict[str, Any]:
         parsed = copy.deepcopy(raw)
     elif isinstance(raw, str) and raw.strip():
         text = raw.strip()
-        if text.startswith('```'):
+        if '```' in text:
             match = re.fullmatch(
-                r'```(?:json)?[ \\t]*\\r?\\n(?P<body>[\\s\\S]*?)\\r?\\n```',
+                r'```(?:json)?[ \t]*\r?\n(?P<body>[\s\S]*?)\r?\n```',
                 text,
                 flags=re.IGNORECASE,
             )
