@@ -1,0 +1,6 @@
+{
+  "contract_version": "2.0.2",
+  "seed_generation": "sha256(global_namespace + '|' + experiment_id + '|' + stage + '|' + scenario_id), first 64 bits unsigned big-endian",
+  "global_namespace": "TDH-STRATEGY-LAB-V2-0-2",
+  "manual_seed_changes_allowed": false
+}

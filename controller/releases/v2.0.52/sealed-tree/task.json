@@ -1,0 +1,87 @@
+{
+  "allowed_backtest_executable": "/srv/tdh-research/phoenix-venv/bin/python",
+  "backtest_command": [
+    "/srv/tdh-research/phoenix-venv/bin/python",
+    "/srv/tdh-collab/controller/strategy-lab-v2/v2.0.24/adapter/tdh_strategy_lab_research_adapter.py",
+    "--request",
+    "{request}",
+    "--output",
+    "{output}",
+    "--stage",
+    "{stage}"
+  ],
+  "data_manifest": "/srv/tdh-collab/control/canonical-data-validation-v1/data_manifest.json",
+  "execution_model_version": "TDH-EXEC-v1",
+  "experiment_plan": {
+    "baseline": {
+      "overrides": {},
+      "plan_entry_id": "reviewed-base-empty-overrides-v1"
+    },
+    "negative_control": {
+      "overrides": {
+        "breakout_bars": 100,
+        "use_adx": false,
+        "use_atr": false,
+        "use_ma": false
+      },
+      "plan_entry_id": "registered-signal-ablation-v1"
+    },
+    "plan_id": "candidate-baseline-negative-v1",
+    "s1_trial_budget_per_candidate": 3,
+    "wfo": {
+      "all_selection_inside_training": true,
+      "folds": [
+        {
+          "fold_id": "W1",
+          "is_end_exclusive": "2024-04-01",
+          "is_start_inclusive": "2023-10-01",
+          "oos_end_exclusive": "2024-07-01",
+          "oos_start_inclusive": "2024-04-01"
+        },
+        {
+          "fold_id": "W2",
+          "is_end_exclusive": "2024-07-01",
+          "is_start_inclusive": "2024-01-01",
+          "oos_end_exclusive": "2024-10-01",
+          "oos_start_inclusive": "2024-07-01"
+        },
+        {
+          "fold_id": "W3",
+          "is_end_exclusive": "2024-10-01",
+          "is_start_inclusive": "2024-04-01",
+          "oos_end_exclusive": "2025-01-01",
+          "oos_start_inclusive": "2024-10-01"
+        },
+        {
+          "fold_id": "W4",
+          "is_end_exclusive": "2025-01-01",
+          "is_start_inclusive": "2024-07-01",
+          "oos_end_exclusive": "2025-04-01",
+          "oos_start_inclusive": "2025-01-01"
+        }
+      ],
+      "is_months": 6,
+      "oos_months": 3,
+      "plan_entry_id": "anchored-6m-3m-four-fold-v1",
+      "selection_split": "IS",
+      "selection_variant": "baseline",
+      "step_months": 3,
+      "windows": 4
+    }
+  },
+  "objective": "Use adversarial Codex and Claude research rounds to pre-register low-dimensional single-exchange crypto futures hypotheses and evaluate approved candidates through deterministic Phoenix S1, S2, S3 and S4. Preserve every trial, failure, input identity and artifact hash. Never use sealed or true-forward data in this autonomous loop. RESEARCH MEMORY: previous_rounds, prior audit findings, previously proposed configs and observed stage outcomes are binding evidence. Never cosmetically recycle a failed config. Before proposing, compare the intended symbol+timeframe+override fingerprint with prior candidates; if equivalent, choose a materially different registered hypothesis. A prior HIGH or MEDIUM audit finding must be explicitly repaired in decision_change_evidence before a related idea may be resubmitted. ROLE ROTATION: Codex should preferentially explore causal trend/breakout/trend-strength or volatility-filter hypotheses available in the registered override surface; Claude should preferentially explore distinct moving-average, entry-policy, volatility/regime or complementary registered hypotheses. These are diversity roles, not permission to invent unregistered indicators. When a prior round used 15m and failed without evidence favoring it, preferentially test a materially distinct 5m hypothesis next; likewise avoid repeatedly choosing 5m without evidence. SYMBOL ROTATION: each candidate must pre-register exactly one symbol from the controller-owned set BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, ADAUSDT, LINKUSDT, AVAXUSDT. After empirical failure, prefer a materially different symbol/timeframe/mechanism rather than micro-tuning the same fingerprint. PROPOSAL CONTRACT: unless the registered search surface makes a falsifiable candidate genuinely impossible, each proposer must submit one distinct candidate. Uncertainty about hidden baseline defaults is not by itself a blocker. Explicitly pin every override value needed by the proposed mechanism, using at most four registered overrides. Every rules object must contain exactly signal, entry, exit and risk. The controller independently rejects configs that collide with baseline or negative-control hashes. Do not invent custom aggregation, bootstrap, CI, ranking or pass/fail mathematics. Controller/adapter-owned gates are authoritative and must only be acknowledged, not redefined: S1 requires at least 30 aggregate trades, net WR >=0.50, realized payoff >=2.0, max DD <=10%, positive expectancy, PF >1.0, >=1 weekday trade/day, baseline_beaten, negative_control_beaten, and every WFO fold must independently satisfy the same S1 hard targets plus both control comparisons; S2 requires the stress matrix, plausible stress pass and realized payoff ratio >=1.75; S3 requires >=300 trades, net WR >=0.50, realized payoff >=2.0, max DD <=10%, positive expectancy, >=1 weekday trade/day, complete WFO and fold consistency; S4 requires Monte Carlo/conservative-quantile gates plus WR >=0.50, payoff >=2.0 and max DD <=10%. Each candidate is single-symbol, so portfolio Max DD and simultaneous-position gates are evaluated on that exact pre-registered symbol rather than by averaging independent symbol portfolios. No proposal may weaken a target or replace stitched OOS DD with fold-reset DD. Falsification must state that failure of any applicable controller-owned gate rejects the candidate. Auditors must not reject a proposal merely for failing to redefine controller-owned baseline, negative-control, WFO, stress or Monte Carlo semantics already frozen in CONTEXT/task/adapter. AUDIT-REPAIR LOOP: when a candidate is rejected for specification ambiguity rather than empirical performance, the next round should repair that exact ambiguity first and then preserve novelty. EMPIRICAL FAILURE LOOP: when S1/S2 performance fails, do not tune toward the observed winning parameter by tiny increments; change one causal mechanism, symbol or timeframe in a pre-registered low-dimensional way. Token economy matters: use prior-round summaries and hashes rather than repeating long narrative history.",
+  "partition_definition": "/srv/tdh-collab/controller/strategy-lab-v2/contracts/partition_definition.json",
+  "permitted_data_class": "DEVELOPMENT_VALIDATION_ONLY",
+  "round_id": "TDH-R02",
+  "seed_manifest": "/srv/tdh-collab/controller/strategy-lab-v2/contracts/seed_manifest.json",
+  "targets": {
+    "max_drawdown_pct": 10.0,
+    "max_simultaneous_positions": 1,
+    "min_trades": 300,
+    "net_win_rate": 0.5,
+    "realized_payoff_ratio": 2.0,
+    "stress_payoff_floor": 1.75,
+    "weekday_trades": 1.0
+  },
+  "task_id": "tdh-strategy-lab-v2"
+}
