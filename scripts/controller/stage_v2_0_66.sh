@@ -13,6 +13,7 @@ PYTHON="/srv/tdh-research/phoenix-venv/bin/python"
 
 EXPECTED_CONTROLLER_SHA256="35eaed9a67d16200be1ef055f4e16b81fc068ceff734d6578e2fbad1ed74fd71"
 EXPECTED_TEST_SHA256="ebea3780c4d8c30b355b137f27ad73ee5daa510b3df9469475a63904d6f8d6e6"
+EXPECTED_LEGACY_TEST_SHA256="ff68dfd372fb3c73de8c4126f7d30703d40286f0349f65bbb02af9a64e1fcae3"
 
 cleanup() {
     if [[ -d "$TMP" && "$TMP" == "$BASE/staging/.v2.0.66-build-"* ]]; then
@@ -47,10 +48,13 @@ case "$REPO_BRANCH" in
 esac
 test -f "$REPO_SOURCE/strategy_lab_controller.py"
 test -f "$REPO_SOURCE/tests/test_v266_frontier_producer_admission.py"
+test -f "$REPO_SOURCE/tests/test_v265_frontier_inbox_lifecycle.py"
 test ! -L "$REPO_SOURCE/strategy_lab_controller.py"
 test ! -L "$REPO_SOURCE/tests/test_v266_frontier_producer_admission.py"
+test ! -L "$REPO_SOURCE/tests/test_v265_frontier_inbox_lifecycle.py"
 echo "$EXPECTED_CONTROLLER_SHA256  $REPO_SOURCE/strategy_lab_controller.py" | sha256sum -c -
 echo "$EXPECTED_TEST_SHA256  $REPO_SOURCE/tests/test_v266_frontier_producer_admission.py" | sha256sum -c -
+echo "$EXPECTED_LEGACY_TEST_SHA256  $REPO_SOURCE/tests/test_v265_frontier_inbox_lifecycle.py" | sha256sum -c -
 
 if [[ -e "$DST" ]]; then
     echo "BLOCKED: staging destination already exists: $DST"
@@ -71,9 +75,13 @@ install -T -m 0755 -- \
 install -T -m 0644 -- \
     "$REPO_SOURCE/tests/test_v266_frontier_producer_admission.py" \
     "$TMP/tests/test_v266_frontier_producer_admission.py"
+install -T -m 0644 -- \
+    "$REPO_SOURCE/tests/test_v265_frontier_inbox_lifecycle.py" \
+    "$TMP/tests/test_v265_frontier_inbox_lifecycle.py"
 
 "$PYTHON" -m py_compile \
     "$TMP/strategy_lab_controller.py" \
+    "$TMP/tests/test_v265_frontier_inbox_lifecycle.py" \
     "$TMP/tests/test_v266_frontier_producer_admission.py"
 
 "$PYTHON" "$TMP/tests/test_v265_frontier_inbox_lifecycle.py"
@@ -118,6 +126,7 @@ mv -- "$TMP" "$DST"
 
 sha256sum \
     "$DST/strategy_lab_controller.py" \
+    "$DST/tests/test_v265_frontier_inbox_lifecycle.py" \
     "$DST/tests/test_v266_frontier_producer_admission.py"
 
 echo "SERVICE_STATE=$(systemctl is-active "$SERVICE" || true)"
