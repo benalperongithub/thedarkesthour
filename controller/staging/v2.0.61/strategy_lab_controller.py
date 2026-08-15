@@ -939,6 +939,25 @@ def _v254_scout_needed(context: dict[str, Any]) -> bool:
     return isinstance(frontier, list) and len(frontier) <= V254_FRONTIER_LOW_WATERMARK
 
 
+def _v261_scout_inbox_status() -> dict[str, Any]:
+    """Inspect capacity before any paid Frontier Scout provider call."""
+    inbox_root = HERE.parent / 'frontier-scout-inbox'
+    count = 0
+    if inbox_root.is_dir() and not inbox_root.is_symlink():
+        count = sum(
+            1
+            for path in inbox_root.glob('TDH-SCOUT-*.json')
+            if path.is_file() and not path.is_symlink()
+        )
+    return {
+        'version': V261_RSI_GATED_REVERSION_VERSION,
+        'inbox_count': count,
+        'inbox_capacity': V254_SCOUT_INBOX_MAX_FILES,
+        'provider_allowed': count < V254_SCOUT_INBOX_MAX_FILES,
+        'checked_before_provider': True,
+    }
+
+
 def _v254_evidence_excerpt(value: Any, maximum: int = 1200) -> Any:
     raw = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     if len(raw) <= maximum:
@@ -1018,6 +1037,17 @@ def _v254_scout_prompt(
 
 
 class Controller(V246_DISPATCH_BASE):
+    def _v261_write_frontier_usage_accounting(self, round_dir: Path) -> None:
+        """Persist Scout-only usage on exception/rollover paths."""
+        atomic_json(round_dir / 'TOKEN_ACCOUNTING_V245.json', {
+            'version': 'tdh-token-accounting-v245',
+            'subagent_usage': copy.deepcopy(
+                getattr(self, '_avu', {'codex': {}, 'claude': {}})
+            ),
+            'controller_budget_usage_includes_subagents': True,
+            'v261_frontier_rollover_usage_accounted': True,
+        })
+
     def _v256_scout_on_frontier_exhaustion(
         self,
         round_dir: Path,
@@ -1047,6 +1077,21 @@ class Controller(V246_DISPATCH_BASE):
                 'status': 'SKIPPED_NO_VALID_CACHED_ADVISORY',
                 'advisory_source_status': None,
                 'provider_invoked': False,
+            }
+            atomic_json(dispatch_path, dispatch)
+            return dispatch
+
+        inbox = _v261_scout_inbox_status()
+        if inbox['provider_allowed'] is not True:
+            dispatch = {
+                **base,
+                'status': 'SKIPPED_INBOX_CAPACITY',
+                'advisory_source_status': 'CACHE_HIT',
+                'provider_invoked': False,
+                'inbox': inbox,
+                'rejection_reason': (
+                    'v2.0.61 scout inbox capacity reached before provider'
+                ),
             }
             atomic_json(dispatch_path, dispatch)
             return dispatch
@@ -1086,6 +1131,10 @@ class Controller(V246_DISPATCH_BASE):
                 'provider_invoked': True,
             }
         except LabError as exc:
+            provider_invoked = (
+                str(exc)
+                != 'v2.0.61 scout inbox capacity reached before provider'
+            )
             atomic_json(sd / 'FRONTIER_SCOUT_REJECTED_V254.json', {
                 'version': V254_FRONTIER_SCOUT_VERSION,
                 'status': 'REJECTED_OR_UNAVAILABLE',
@@ -1100,7 +1149,7 @@ class Controller(V246_DISPATCH_BASE):
                 **base,
                 'status': 'REJECTED_OR_UNAVAILABLE',
                 'advisory_source_status': 'CACHE_HIT',
-                'provider_invoked': True,
+                'provider_invoked': provider_invoked,
                 'rejection_reason': b(exc, 400),
             }
         finally:
@@ -1375,6 +1424,7 @@ class Controller(V246_DISPATCH_BASE):
                     'audit_output_quarantine': event,
                 }
                 atomic_json(round_dir / 'ROUND_SUMMARY.json', summary)
+                self._v261_write_frontier_usage_accounting(round_dir)
                 return summary, False, None
             if error not in V252_FRONTIER_EXHAUSTION_ERRORS:
                 raise
@@ -1437,6 +1487,7 @@ class Controller(V246_DISPATCH_BASE):
                 'frontier_exhaustion': event,
             }
             atomic_json(round_dir / 'ROUND_SUMMARY.json', summary)
+            self._v261_write_frontier_usage_accounting(round_dir)
             return summary, False, None
 
     def validate_proposal(self, raw: dict[str, Any], round_number: int) -> dict[str, Any]:
@@ -1534,6 +1585,10 @@ class Controller(V246_DISPATCH_BASE):
         critic: dict[str, Any],
         advisory_source_status: str,
     ) -> dict[str, Any]:
+        if _v261_scout_inbox_status()['provider_allowed'] is not True:
+            raise LabError(
+                'v2.0.61 scout inbox capacity reached before provider'
+            )
         if getattr(self, '_v254_scout_attempted', False):
             raise LabError('v2.0.54 scout already attempted in this bounded run')
         self._v254_scout_attempted = True
@@ -1609,7 +1664,7 @@ class Controller(V246_DISPATCH_BASE):
             proposal_sha256 = _v254_canonical_hash(proposal)
             inbox_root = HERE.parent / 'frontier-scout-inbox'
             inbox_root.mkdir(parents=True, exist_ok=True)
-            if len(list(inbox_root.glob('TDH-SCOUT-*.json'))) >= V254_SCOUT_INBOX_MAX_FILES:
+            if _v261_scout_inbox_status()['provider_allowed'] is not True:
                 raise LabError('v2.0.54 scout inbox capacity reached')
             record = {
                 'version': V257_SCOUT_CONFORMANCE_VERSION,
@@ -1686,6 +1741,24 @@ class Controller(V246_DISPATCH_BASE):
         sd.mkdir(exist_ok=True)
         dispatch_path = sd / 'FRONTIER_SCOUT_DISPATCH_V255.json'
 
+        inbox = _v261_scout_inbox_status()
+        if inbox['provider_allowed'] is not True:
+            atomic_json(dispatch_path, {
+                'version': V255_SCOUT_CACHE_CONTINUITY_VERSION,
+                'status': 'SKIPPED_INBOX_CAPACITY',
+                'advisory_source_status': source_status,
+                'provider_invoked': False,
+                'researcher_rerun': False,
+                'critic_rerun': False,
+                'automatically_registered': False,
+                'inbox': inbox,
+                'controller_only_promotion': True,
+                'trading_actions': False,
+                'exchange_api_access': False,
+            })
+            atomic_json(sd / 'SUBAGENT_USAGE.json', self._avu)
+            return
+
         try:
             scout = self._run_frontier_scout(
                 sd,
@@ -1708,6 +1781,10 @@ class Controller(V246_DISPATCH_BASE):
                 'exchange_api_access': False,
             })
         except LabError as exc:
+            provider_invoked = (
+                str(exc)
+                != 'v2.0.61 scout inbox capacity reached before provider'
+            )
             atomic_json(sd / 'FRONTIER_SCOUT_REJECTED_V254.json', {
                 'version': V254_FRONTIER_SCOUT_VERSION,
                 'status': 'REJECTED_OR_UNAVAILABLE',
@@ -1722,7 +1799,7 @@ class Controller(V246_DISPATCH_BASE):
                 'version': V255_SCOUT_CACHE_CONTINUITY_VERSION,
                 'status': 'REJECTED_OR_UNAVAILABLE',
                 'advisory_source_status': source_status,
-                'provider_invoked': True,
+                'provider_invoked': provider_invoked,
                 'researcher_rerun': False,
                 'critic_rerun': False,
                 'automatically_registered': False,
@@ -1894,6 +1971,9 @@ def runtime_binding_contract() -> dict[str, Any]:
         'v261_candidate_baseline_negative_control_bound': True,
         'v261_closed_bar_only': True,
         'v261_s1_only': True,
+        'v261_scout_capacity_checked_before_provider': True,
+        'v261_full_inbox_never_invokes_provider': True,
+        'v261_frontier_rollover_usage_accounted': True,
     }
 
 

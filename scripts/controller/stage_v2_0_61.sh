@@ -10,11 +10,11 @@ REPO="/home/tdw/the-darkest-hour"
 REPO_SOURCE="$REPO/controller/staging/v2.0.61"
 GATE="/usr/local/sbin/tdh-lab-admin-gate"
 
-EXPECTED_CONTROLLER_SHA256="2bae90cf0cfbfbbf29d934c880618c499588231343f6e77bae21c2217594a11a"
+EXPECTED_CONTROLLER_SHA256="2f532755823cf78d091b05eee020a7b3719669e58aeb97f68831704678a90103"
 EXPECTED_KERNEL_SHA256="d267a63046cf668bd07f7490de20260c4801ff6988a89e118f6f64e338e4ae0f"
 EXPECTED_ADAPTER_SHA256="1a1f7c29adfedb86639c91ce854a9837340b676eb6384dd1229b97f0665982c0"
 EXPECTED_SEEDS_SHA256="c3567832b09df7aa8898da03110a40e4ef0c2d8f5a18076f980aeb6d2506c5f8"
-EXPECTED_TEST_SHA256="797f6ad1b6ae69be9e94e29e579bb1b4e46b9e745a219264e2686a27a3c0d0c5"
+EXPECTED_TEST_SHA256="56e324a196037704a8a1f55577c63c00ac77034bc8d351974414ea3a9f8f4cce"
 
 cleanup() {
     if [[ -d "$TMP" && "$TMP" == "$BASE/staging/.v2.0.61-build-"* ]]; then
@@ -100,6 +100,9 @@ assert contract['v261_only_reviewed_packet_a_is_auto_admitted'] is True
 assert contract['v261_candidate_baseline_negative_control_bound'] is True
 assert contract['v261_closed_bar_only'] is True
 assert contract['v261_s1_only'] is True
+assert contract['v261_scout_capacity_checked_before_provider'] is True
+assert contract['v261_full_inbox_never_invokes_provider'] is True
+assert contract['v261_frontier_rollover_usage_accounted'] is True
 assert contract['controller_only_promotion'] is True
 assert contract['trading_actions'] is False
 assert contract['exchange_api_access'] is False
