@@ -13,6 +13,7 @@ PYTHON="/srv/tdh-research/phoenix-venv/bin/python"
 
 EXPECTED_CONTROLLER_SHA256="7d4e569eb9b22c12ced572a3d68b1d8315a732157cfbe9f6f47c22635eb19051"
 EXPECTED_TEST_SHA256="4ae499ac103cf2f936bc3617a121b339def273644c8f349d64c04c32a4c147f3"
+EXPECTED_V263_COMPAT_TEST_SHA256="50df69141239a9c6f063a41a4a3b16e0e13b0e5f1bf3cd093d396b6d5b1543b4"
 
 cleanup() {
     if [[ -d "$TMP" && "$TMP" == "$BASE/staging/.v2.0.64-build-"* ]]; then
@@ -40,10 +41,13 @@ echo "===== 3. VERIFY REPOSITORY SOURCES ====="
 test "$(git -C "$REPO" branch --show-current)" = "main"
 test -f "$REPO_SOURCE/strategy_lab_controller.py"
 test -f "$REPO_SOURCE/tests/test_v264_checkpoint_startup.py"
+test -f "$REPO_SOURCE/tests/test_v263_checkpoint_resume.py"
 test ! -L "$REPO_SOURCE/strategy_lab_controller.py"
 test ! -L "$REPO_SOURCE/tests/test_v264_checkpoint_startup.py"
+test ! -L "$REPO_SOURCE/tests/test_v263_checkpoint_resume.py"
 echo "$EXPECTED_CONTROLLER_SHA256  $REPO_SOURCE/strategy_lab_controller.py" | sha256sum -c -
 echo "$EXPECTED_TEST_SHA256  $REPO_SOURCE/tests/test_v264_checkpoint_startup.py" | sha256sum -c -
+echo "$EXPECTED_V263_COMPAT_TEST_SHA256  $REPO_SOURCE/tests/test_v263_checkpoint_resume.py" | sha256sum -c -
 
 if [[ -e "$DST" ]]; then
     echo "BLOCKED: staging destination already exists: $DST"
@@ -64,11 +68,16 @@ install -T -m 0755 -- \
 install -T -m 0644 -- \
     "$REPO_SOURCE/tests/test_v264_checkpoint_startup.py" \
     "$TMP/tests/test_v264_checkpoint_startup.py"
+install -T -m 0644 -- \
+    "$REPO_SOURCE/tests/test_v263_checkpoint_resume.py" \
+    "$TMP/tests/test_v263_checkpoint_resume.py"
 
 "$PYTHON" -m py_compile \
     "$TMP/strategy_lab_controller.py" \
+    "$TMP/tests/test_v263_checkpoint_resume.py" \
     "$TMP/tests/test_v264_checkpoint_startup.py"
 
+/usr/bin/python3 "$TMP/tests/test_v263_checkpoint_resume.py"
 /usr/bin/python3 "$TMP/tests/test_v264_checkpoint_startup.py"
 
 "$PYTHON" - "$TMP/strategy_lab_controller.py" <<'PY'
@@ -103,6 +112,7 @@ mv -- "$TMP" "$DST"
 
 sha256sum \
     "$DST/strategy_lab_controller.py" \
+    "$DST/tests/test_v263_checkpoint_resume.py" \
     "$DST/tests/test_v264_checkpoint_startup.py"
 
 echo "SERVICE_STATE=$(systemctl is-active "$SERVICE" || true)"
