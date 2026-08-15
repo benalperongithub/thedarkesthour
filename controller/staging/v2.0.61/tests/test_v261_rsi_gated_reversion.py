@@ -8,8 +8,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+try:
+    import numpy as np
+    import pandas as pd
+except ModuleNotFoundError:
+    np = None
+    pd = None
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,8 +31,13 @@ def load_module(name: str, path: Path):
     return module
 
 
-CONTROLLER_MODULE = load_module('tdh_v261_controller_test', CONTROLLER)
-ADAPTER_MODULE = load_module('tdh_v261_adapter_test', ADAPTER)
+NUMERICAL_DEPS_AVAILABLE = np is not None and pd is not None
+if NUMERICAL_DEPS_AVAILABLE:
+    CONTROLLER_MODULE = load_module('tdh_v261_controller_test', CONTROLLER)
+    ADAPTER_MODULE = load_module('tdh_v261_adapter_test', ADAPTER)
+else:
+    CONTROLLER_MODULE = None
+    ADAPTER_MODULE = None
 
 
 def synthetic_frame(rows: int = 720) -> pd.DataFrame:
@@ -51,6 +60,10 @@ def synthetic_frame(rows: int = 720) -> pd.DataFrame:
     )
 
 
+@unittest.skipUnless(
+    NUMERICAL_DEPS_AVAILABLE,
+    'v2.0.61 numerical integration tests require the Phoenix environment',
+)
 class V261RsiGatedReversionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
