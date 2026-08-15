@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -155,6 +157,72 @@ class V261RsiGatedReversionTests(unittest.TestCase):
         self.assertTrue(contract['v260_spoofed_or_freeform_seed_transition_fails_closed'])
         self.assertFalse(contract['trading_actions'])
         self.assertFalse(contract['exchange_api_access'])
+
+    def test_full_scout_inbox_skips_provider_and_accounts_rollover(self):
+        original_here = CONTROLLER_MODULE.HERE
+        original_capacity = CONTROLLER_MODULE.V254_SCOUT_INBOX_MAX_FILES
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                release = root / 'v2.0.61'
+                release.mkdir()
+                inbox = root / 'frontier-scout-inbox'
+                inbox.mkdir()
+                (inbox / 'TDH-SCOUT-000001-test.json').write_text(
+                    '{}', encoding='utf-8'
+                )
+                CONTROLLER_MODULE.HERE = release
+                CONTROLLER_MODULE.V254_SCOUT_INBOX_MAX_FILES = 1
+
+                status = CONTROLLER_MODULE._v261_scout_inbox_status()
+                self.assertEqual(status['inbox_count'], 1)
+                self.assertFalse(status['provider_allowed'])
+                self.assertTrue(status['checked_before_provider'])
+
+                class Dummy:
+                    _avu = {
+                        'codex': {},
+                        'claude': {'billable_tokens': 8348},
+                    }
+
+                dummy = Dummy()
+                with self.assertRaisesRegex(
+                    CONTROLLER_MODULE.LabError,
+                    'capacity reached before provider',
+                ):
+                    CONTROLLER_MODULE.Controller._run_frontier_scout(
+                        dummy,
+                        root,
+                        {},
+                        {},
+                        {},
+                        'CACHE_HIT',
+                    )
+                self.assertFalse(
+                    hasattr(dummy, '_v254_scout_attempted'),
+                    'provider attempt marker must not be set when inbox is full',
+                )
+
+                round_dir = root / 'round-01'
+                round_dir.mkdir()
+                CONTROLLER_MODULE.Controller._v261_write_frontier_usage_accounting(
+                    dummy, round_dir
+                )
+                accounting = json.loads(
+                    (round_dir / 'TOKEN_ACCOUNTING_V245.json').read_text(
+                        encoding='utf-8'
+                    )
+                )
+                self.assertEqual(
+                    accounting['subagent_usage']['claude']['billable_tokens'],
+                    8348,
+                )
+                self.assertTrue(
+                    accounting['v261_frontier_rollover_usage_accounted']
+                )
+        finally:
+            CONTROLLER_MODULE.HERE = original_here
+            CONTROLLER_MODULE.V254_SCOUT_INBOX_MAX_FILES = original_capacity
 
 
 if __name__ == '__main__':
