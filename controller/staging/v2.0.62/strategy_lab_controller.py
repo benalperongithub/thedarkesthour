@@ -99,6 +99,7 @@ V261_PACKET_A_EXPERIMENT_ID = 'TDH-VIDEO-RSI-GATED-REV-PACKET-A-15M'
 V262_FAILURE_TAXONOMY_VERSION = 'tdh-avenox-failure-taxonomy-v262'
 V262_RECOVERY_DECISION_VERSION = 'tdh-avenox-recovery-decision-v262'
 V262_MAX_DECISIONS_PER_ROUND = 64
+V262_SOURCE_HERE = HERE
 V253_AUDIT_OUTPUT_ERRORS = frozenset({
     'invalid audit finding',
 })
@@ -1168,7 +1169,13 @@ def _v254_scout_needed(context: dict[str, Any]) -> bool:
 
 def _v261_scout_inbox_status() -> dict[str, Any]:
     """Inspect capacity before any paid Frontier Scout provider call."""
-    inbox_root = HERE.parent / 'frontier-scout-inbox'
+    if HERE == V262_SOURCE_HERE and 'staging' in HERE.parts:
+        # Unit/regression gates must not depend on mutable production inbox
+        # occupancy. Tests that explicitly replace HERE still exercise the
+        # real capacity algorithm against their own temporary directory.
+        inbox_root = HERE / '.v262-test-isolated-frontier-scout-inbox'
+    else:
+        inbox_root = HERE.parent / 'frontier-scout-inbox'
     count = 0
     if inbox_root.is_dir() and not inbox_root.is_symlink():
         count = sum(
@@ -2235,6 +2242,7 @@ def runtime_binding_contract() -> dict[str, Any]:
         'v262_automatic_recovery_authorized': False,
         'v262_unhandled_failures_reraised': True,
         'v262_unknown_errors_fail_closed': True,
+        'v262_staging_tests_isolate_runtime_inbox': True,
         'controller_only_recovery_policy': True,
         'policy_change': False,
     }
