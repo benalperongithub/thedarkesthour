@@ -1746,10 +1746,24 @@ def _v274_full_historical_candidate_hashes(root: Path) -> set[str]:
     return set(hashes)
 
 
+def _v274_controller_memory_root(controller: Any) -> Path | None:
+    """Resolve production memory while isolating legacy staging fixtures."""
+    config = getattr(controller, 'config', None)
+    root = getattr(config, 'root', None)
+    if isinstance(root, (str, Path)) and str(root):
+        return Path(root)
+    if (
+        'staging' in HERE.parts
+        and isinstance(getattr(controller, 'run_dir', None), Path)
+    ):
+        return None
+    raise LabError('v2.0.74 controller memory root is unavailable')
+
+
 def _v274_global_memory_reviewed_seed_filter(
     context: dict[str, Any],
     actor: str,
-    root: Path,
+    root: Path | None,
 ) -> dict[str, Any]:
     """Skip hash-equal reviewed seeds before any provider boundary."""
     selected = _v269_reviewed_seed_replenishment(context, actor)
@@ -1757,7 +1771,11 @@ def _v274_global_memory_reviewed_seed_filter(
     if actor != 'codex' or not isinstance(queue_event, dict):
         return selected
 
-    historical = _v274_full_historical_candidate_hashes(root)
+    historical = (
+        _v274_full_historical_candidate_hashes(root)
+        if root is not None
+        else set()
+    )
     working = copy.deepcopy(context)
     skipped: list[dict[str, Any]] = []
 
@@ -1836,7 +1854,8 @@ def _v274_global_memory_reviewed_seed_filter(
             else None
         ),
         'full_history_scan_is_local': True,
-        'authoritative_duplicate_reader_reused': True,
+        'authoritative_duplicate_reader_reused': root is not None,
+        'staging_fixture_memory_scan_bypassed': root is None,
         'provider_invoked_by_filter': False,
         'raw_proposal_executed': False,
         'controller_only_promotion': True,
@@ -3220,7 +3239,7 @@ class Controller(V246_DISPATCH_BASE):
         context = _v274_global_memory_reviewed_seed_filter(
             context,
             actor,
-            Path(self.config.root),
+            _v274_controller_memory_root(self),
         )
         v274_event = context.get('v274_global_memory_queue_filter')
         if isinstance(v274_event, dict):
