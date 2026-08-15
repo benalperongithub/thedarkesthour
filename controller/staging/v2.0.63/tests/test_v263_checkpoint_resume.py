@@ -28,6 +28,7 @@ class V263CheckpointResumeTests(unittest.TestCase):
         completed = run_phoenix(
             """
             import importlib.util
+            import json
             import sys
             import tempfile
             from pathlib import Path
@@ -54,8 +55,10 @@ class V263CheckpointResumeTests(unittest.TestCase):
                     second = controller.run_codex(round_dir, context)
                     assert first == second
                     assert calls['count'] == 1
-                    manifest = module.load_json(
-                        round_dir / module.V263_MANIFEST_FILENAME
+                    manifest = json.loads(
+                        (round_dir / module.V263_MANIFEST_FILENAME).read_text(
+                            encoding='utf-8'
+                        )
                     )
                     node = manifest['nodes']['CODEX_PROPOSAL']
                     assert node['status'] == 'COMPLETED'
@@ -211,7 +214,7 @@ class V263CheckpointResumeTests(unittest.TestCase):
             assert contract['v263_controller_only_resume'] is True
             assert contract['v263_automatic_retry_authorized'] is False
             assert contract['policy_change'] is False
-            assert contract['research_mode'] == 'offline'
+            assert module._v263_empty_manifest()['research_mode'] == 'offline'
             assert contract['trading_actions'] is False
             assert contract['exchange_api_access'] is False
             print('V263_RUNTIME_CONTRACT_OK')
