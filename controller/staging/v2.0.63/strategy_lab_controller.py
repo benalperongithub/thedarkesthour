@@ -13,8 +13,8 @@ intake when the inherited novelty frontier is empty.
 
 Completed Codex/Claude proposal nodes and completed rounds can be resumed only
 when exact input and payload hashes match. Interrupted nodes fail closed for the
-bounded self-healing layer planned next. No S1 target, Phoenix metric, trading
-path, paper path or exchange permission is changed or weakened.
+bounded self-healing layer planned next. No S1 target or Phoenix metric is
+changed. No trading path, paper path or exchange permission is added or weakened.
 """
 from __future__ import annotations
 
