@@ -2788,9 +2788,6 @@ class Controller(V246_DISPATCH_BASE):
         dispatch_path = sd / 'FRONTIER_SCOUT_DISPATCH_V255.json'
 
         inbox = _v261_scout_inbox_status()
-        producer_decision = _v266_produce_one_review_packet(inbox)
-        if producer_decision is not None:
-            inbox = _v261_scout_inbox_status()
         if inbox['provider_allowed'] is not True:
             blocking_reason = str(
                 inbox.get('provider_blocking_reason')
@@ -2817,7 +2814,6 @@ class Controller(V246_DISPATCH_BASE):
                 'critic_rerun': False,
                 'automatically_registered': False,
                 'inbox': inbox,
-                'producer_decision': producer_decision,
                 'rejection_reason': blocking_reason,
                 'controller_only_promotion': True,
                 'trading_actions': False,
