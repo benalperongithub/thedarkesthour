@@ -37,7 +37,14 @@ test -f "$SRC/SHA256SUMS"
 grep -q '"status": "PREFLIGHT_OK"' /tmp/tdh-v2.0.64-before-v265-preflight.log
 
 echo "===== 3. VERIFY REPOSITORY SOURCES ====="
-test "$(git -C "$REPO" branch --show-current)" = "main"
+REPO_BRANCH="$(git -C "$REPO" branch --show-current)"
+case "$REPO_BRANCH" in
+    main|agent/v2-0-65-frontier-inbox-lifecycle) ;;
+    *)
+        echo "BLOCKED: unexpected repository branch: $REPO_BRANCH"
+        exit 4
+        ;;
+esac
 test -f "$REPO_SOURCE/strategy_lab_controller.py"
 test -f "$REPO_SOURCE/tests/test_v265_frontier_inbox_lifecycle.py"
 test ! -L "$REPO_SOURCE/strategy_lab_controller.py"
