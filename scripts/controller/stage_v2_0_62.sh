@@ -11,7 +11,7 @@ REPO_SOURCE="$REPO/controller/staging/v2.0.62"
 GATE="/usr/local/sbin/tdh-lab-admin-gate"
 PYTHON="/srv/tdh-research/phoenix-venv/bin/python"
 
-EXPECTED_CONTROLLER_SHA256="cea4e2e3e6c1cfc5c3647943af9bbd5d746bcee232a55456ae7ae959537caac8"
+EXPECTED_CONTROLLER_SHA256="ea404aca971d72571e577a099d20ca307b5c0977ca1279cadc107844f155a4ab"
 EXPECTED_TEST_SHA256="ae6d064f8c5919365c68dccd9f40daa99c6d93f1f395334bdb33f7b9c05e12cc"
 
 cleanup() {
