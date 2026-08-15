@@ -9,6 +9,7 @@ TMP="$BASE/staging/.v2.0.61-build-$$"
 REPO="/home/tdw/the-darkest-hour"
 REPO_SOURCE="$REPO/controller/staging/v2.0.61"
 GATE="/usr/local/sbin/tdh-lab-admin-gate"
+PYTHON="/srv/tdh-research/phoenix-venv/bin/python"
 
 EXPECTED_CONTROLLER_SHA256="2f532755823cf78d091b05eee020a7b3719669e58aeb97f68831704678a90103"
 EXPECTED_KERNEL_SHA256="d267a63046cf668bd07f7490de20260c4801ff6988a89e118f6f64e338e4ae0f"
@@ -52,6 +53,8 @@ if [[ -e "$DST" ]]; then
 fi
 
 echo "===== 4. BUILD v2.0.61 STAGING ====="
+test -x "$PYTHON"
+"$PYTHON" -c 'import numpy, pandas'
 mkdir -p "$BASE/staging"
 mkdir -p "$TMP"
 cp -a "$SRC/." "$TMP/"
@@ -73,15 +76,15 @@ install -T -m 0644 -- \
     "$REPO_SOURCE/tests/test_v261_rsi_gated_reversion.py" \
     "$TMP/tests/test_v261_rsi_gated_reversion.py"
 
-python3 -m py_compile \
+"$PYTHON" -m py_compile \
     "$TMP/strategy_lab_controller.py" \
     "$TMP/research/research_kernel.py" \
     "$TMP/adapter/tdh_strategy_lab_research_adapter.py" \
     "$TMP/tests/test_v261_rsi_gated_reversion.py"
 
-python3 "$TMP/tests/test_v261_rsi_gated_reversion.py"
+"$PYTHON" "$TMP/tests/test_v261_rsi_gated_reversion.py"
 
-python3 - "$TMP/strategy_lab_controller.py" <<'PY'
+"$PYTHON" - "$TMP/strategy_lab_controller.py" <<'PY'
 import importlib.util
 import sys
 
