@@ -33,6 +33,7 @@ if kspec is None or kspec.loader is None:
 kernel = importlib.util.module_from_spec(kspec)
 sys.modules[kspec.name] = kernel
 kspec.loader.exec_module(kernel)
+_V268_KERNEL = kernel
 
 
 def _export_base_namespace(module: Any) -> None:
@@ -44,6 +45,9 @@ def _export_base_namespace(module: Any) -> None:
 
 _export_base_namespace(base)
 del _export_base_namespace
+# The inherited v2.0.67 adapter exports its own ``kernel`` name. Restore the
+# local v2.0.68 registry after copying the inherited namespace.
+kernel = _V268_KERNEL
 
 
 V268_FAMILY = kernel.V268_FAMILY
