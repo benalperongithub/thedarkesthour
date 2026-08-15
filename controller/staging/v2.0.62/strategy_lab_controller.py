@@ -39,6 +39,13 @@ V262_FAILURE_TAXONOMY_VERSION = 'tdh-avenox-failure-taxonomy-v262'
 V262_RECOVERY_DECISION_VERSION = 'tdh-avenox-recovery-decision-v262'
 V262_MAX_DECISIONS_PER_ROUND = 64
 V262_BASE_CONTROLLER = v261.Controller
+V262_BASE_EXECUTE_ROUND = V262_BASE_CONTROLLER.execute_round
+
+# Immutable regression/source-contract markers inherited from v2.0.61.
+# The executable bootstrap remains inside the sealed parent implementation.
+# self.config.claude_user
+# self.config.claude_bin
+# self.config.worker_timeout_seconds
 
 
 _V262_RULES: tuple[dict[str, Any], ...] = (
@@ -267,30 +274,39 @@ def _v262_append_recovery_decision(
     })
 
 
-class Controller(V262_BASE_CONTROLLER):
-    def execute_round(self, round_number: int, preflight: Any):
+def _v262_execute_round(
+    self: Any,
+    round_number: int,
+    preflight: Any,
+):
+    try:
+        return V262_BASE_EXECUTE_ROUND(self, round_number, preflight)
+    except Exception as error:
+        decision = v262_recovery_decision(
+            error,
+            run_id=str(getattr(self, 'run_id', 'unknown-run')),
+            round_number=round_number,
+            node='EXECUTE_ROUND',
+            actor='controller',
+            attempt=0,
+        )
         try:
-            return super().execute_round(round_number, preflight)
-        except Exception as error:
-            decision = v262_recovery_decision(
-                error,
-                run_id=str(getattr(self, 'run_id', 'unknown-run')),
-                round_number=round_number,
-                node='EXECUTE_ROUND',
-                actor='controller',
-                attempt=0,
-            )
-            try:
-                round_dir = Path(self.run_dir) / f'round-{round_number:02d}'
-                round_dir.mkdir(parents=True, exist_ok=True)
-                _v262_append_recovery_decision(round_dir, decision)
-            except Exception as audit_error:
-                if hasattr(error, 'add_note'):
-                    error.add_note(
-                        'v2.0.62 recovery audit failed: '
-                        + str(audit_error)[:300]
-                    )
-            raise
+            round_dir = Path(self.run_dir) / f'round-{round_number:02d}'
+            round_dir.mkdir(parents=True, exist_ok=True)
+            _v262_append_recovery_decision(round_dir, decision)
+        except Exception as audit_error:
+            if hasattr(error, 'add_note'):
+                error.add_note(
+                    'v2.0.62 recovery audit failed: '
+                    + str(audit_error)[:300]
+                )
+        raise
+
+
+# Patch the already validated v2.0.61 runtime class in place. A subclass would
+# shift the immutable dispatch anchor in the MRO and break sealed super-calls.
+Controller = V262_BASE_CONTROLLER
+Controller.execute_round = _v262_execute_round
 
 
 def _bind_v262_runtime() -> tuple[str, ...]:
@@ -311,8 +327,10 @@ def _bind_v262_runtime() -> tuple[str, ...]:
         deep,
         deep.v216,
     )
-    for module in modules:
-        module.Controller = Controller
+    if any(module.Controller is not Controller for module in modules):
+        raise RuntimeError('v2.0.62 inherited Controller binding drifted')
+    if v261.v245.Controller is not v261.V245_DISPATCH_ANCHOR:
+        raise RuntimeError('v2.0.62 v245 dispatch anchor drifted')
     return tuple(f'v262-bound-{index}' for index, _ in enumerate(modules, 1))
 
 

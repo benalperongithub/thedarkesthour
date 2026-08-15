@@ -11,8 +11,8 @@ REPO_SOURCE="$REPO/controller/staging/v2.0.62"
 GATE="/usr/local/sbin/tdh-lab-admin-gate"
 PYTHON="/srv/tdh-research/phoenix-venv/bin/python"
 
-EXPECTED_CONTROLLER_SHA256="e7c0d2d8661915bcf9116550c29fcd59726a6865ad5303595bf4ccadb70a4188"
-EXPECTED_TEST_SHA256="044681d7ed1e746144b6606bf6b8ad4fb5d615673d200d37de4851189a575536"
+EXPECTED_CONTROLLER_SHA256="c942bda7204ac8fc8da05d00e1f333912fa8f94f7839a6262d80fe7df774de3b"
+EXPECTED_TEST_SHA256="0e719b17227c83cf0e0238aebbe0d691e9aa5b66b980962eb78a3310149259a7"
 
 cleanup() {
     if [[ -d "$TMP" && "$TMP" == "$BASE/staging/.v2.0.62-build-"* ]]; then
