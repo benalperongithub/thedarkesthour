@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import subprocess
 import sys
 import textwrap
@@ -153,7 +154,16 @@ class V262FailureTaxonomyTests(unittest.TestCase):
         source = CONTROLLER.read_text(encoding='utf-8')
         self.assertIn("'automatic_recovery_authorized': False", source)
         self.assertIn("'controller_must_reraise': True", source)
-        self.assertIn('            raise\n', source)
+        tree = ast.parse(source)
+        boundary = next(
+            node for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == '_v262_execute_round'
+        )
+        self.assertTrue(any(
+            isinstance(node, ast.Raise) and node.exc is None
+            for node in ast.walk(boundary)
+        ))
         self.assertNotIn('trading_actions\': True', source)
         self.assertNotIn('exchange_api_access\': True', source)
 
