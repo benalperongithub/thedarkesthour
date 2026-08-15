@@ -148,7 +148,8 @@ for function_name in (
 ):
     function = getattr(base, function_name)
     function.__globals__['registry'] = registry
-    function.__globals__['SUPPORTED_FAMILIES'] = SUPPORTED_FAMILIES
+    # Keep the defining atlas module's immutable family boundary intact.
+    # This overlay registers the v2.0.61 family only after base validation.
 
 base.registry = registry
 base.SUPPORTED_FAMILIES = SUPPORTED_FAMILIES
