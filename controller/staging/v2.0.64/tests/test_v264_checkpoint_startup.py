@@ -175,6 +175,7 @@ class V264CheckpointStartupTests(unittest.TestCase):
             original = module.Controller._v262_execute_round
             def execute(self, round_number, preflight):
                 calls['count'] += 1
+                (Path(self.run_dir) / f'round-{round_number:02d}').mkdir()
                 return ({'research_round': round_number, 'verdict': 'REVISE'}, False, None)
             module.Controller._v262_execute_round = execute
             try:
