@@ -87,10 +87,10 @@ class V262FailureTaxonomyTests(unittest.TestCase):
             sys.modules[spec.name] = module
             spec.loader.exec_module(module)
 
-            original = module.V262_BASE_EXECUTE_ROUND
+            original = module.Controller._v261_execute_round
             def fail_round(self, round_number, preflight):
                 raise module.LabError('checkpoint mismatch after process crash')
-            module.V262_BASE_EXECUTE_ROUND = fail_round
+            module.Controller._v261_execute_round = fail_round
             try:
                 with tempfile.TemporaryDirectory() as directory:
                     controller = object.__new__(module.Controller)
@@ -114,7 +114,7 @@ class V262FailureTaxonomyTests(unittest.TestCase):
                     assert decision['trading_actions'] is False
                     assert decision['exchange_api_access'] is False
             finally:
-                module.V262_BASE_EXECUTE_ROUND = original
+                module.Controller._v261_execute_round = original
             print('V262_RECOVERY_AUDIT_RERAISE_OK')
             """
         )
@@ -155,10 +155,15 @@ class V262FailureTaxonomyTests(unittest.TestCase):
         self.assertIn("'automatic_recovery_authorized': False", source)
         self.assertIn("'controller_must_reraise': True", source)
         tree = ast.parse(source)
-        boundary = next(
+        controller_class = next(
             node for node in tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == 'Controller'
+        )
+        boundary = next(
+            node for node in controller_class.body
             if isinstance(node, ast.FunctionDef)
-            and node.name == '_v262_execute_round'
+            and node.name == 'execute_round'
         )
         self.assertTrue(any(
             isinstance(node, ast.Raise) and node.exc is None
