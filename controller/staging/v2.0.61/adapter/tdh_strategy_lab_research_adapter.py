@@ -49,6 +49,8 @@ del _export_base_namespace
 V261_FAMILY = 'RSI_GATED_REVERSION'
 V261_IMPLEMENTATION = 'RSI14_25_75_ADX14_LE20_ATR1_RR2_CLOSED_BAR_V1'
 V261_RISK_FRACTION = 0.01
+REFERENCE_INITIAL_CAPITAL_USD = 20_000.0
+ACCOUNTING_BASIS = "REFERENCE_CAPITAL_REPORTING_ONLY"
 _BASE_SIGNAL = base.v221.strategy_signal
 _BASE_SIMULATE = base.v221.simulate
 _BASE_AGGREGATE = base.v221.aggregate_folds
@@ -161,18 +163,18 @@ def _v261_metrics(
         if peak > 0.0:
             max_drawdown = max(max_drawdown, (peak - equity) / peak)
     net_return = max(-100.0, (equity - 1.0) * 100.0)
-    net_pnl = 20_000.0 * net_return / 100.0
+    net_pnl = REFERENCE_INITIAL_CAPITAL_USD * net_return / 100.0
     trade_count = int(value.get('trade_count', 0))
     value.update({
-        'initial_capital': 20_000.0,
-        'final_capital': max(0.0, 20_000.0 + net_pnl),
+        'initial_capital': REFERENCE_INITIAL_CAPITAL_USD,
+        'final_capital': max(0.0, REFERENCE_INITIAL_CAPITAL_USD + net_pnl),
         'net_pnl': net_pnl,
         'pnl_per_trade': net_pnl / trade_count if trade_count else 0.0,
         'net_return_pct': net_return,
         'max_drawdown_pct': min(100.0, max_drawdown * 100.0),
         'accounting_currency': 'USD',
-        'accounting_basis': base.RUNTIME_ACCOUNTING_BASIS,
-        'reference_capital_reporting_only': True,
+        'accounting_basis': ACCOUNTING_BASIS,
+        "reference_capital_reporting_only": True,
         'risk_fraction_current_equity': V261_RISK_FRACTION,
         'v261_family': True,
         'v261_implementation': V261_IMPLEMENTATION,
@@ -290,18 +292,18 @@ def aggregate_folds(folds: list[dict[str, Any]]) -> dict[str, Any]:
         float(item['metrics'].get('max_drawdown_pct', 0.0)) for item in folds
     ]
     net_return = max(-100.0, min(returns) if returns else 0.0)
-    net_pnl = 20_000.0 * net_return / 100.0
+    net_pnl = REFERENCE_INITIAL_CAPITAL_USD * net_return / 100.0
     trade_count = int(value.get('trade_count', 0))
     value.update({
-        'initial_capital': 20_000.0,
-        'final_capital': max(0.0, 20_000.0 + net_pnl),
+        'initial_capital': REFERENCE_INITIAL_CAPITAL_USD,
+        'final_capital': max(0.0, REFERENCE_INITIAL_CAPITAL_USD + net_pnl),
         'net_pnl': net_pnl,
         'pnl_per_trade': net_pnl / trade_count if trade_count else 0.0,
         'net_return_pct': net_return,
         'max_drawdown_pct': min(100.0, max(drawdowns) if drawdowns else 0.0),
         'accounting_currency': 'USD',
-        'accounting_basis': base.RUNTIME_ACCOUNTING_BASIS,
-        'reference_capital_reporting_only': True,
+        'accounting_basis': ACCOUNTING_BASIS,
+        "reference_capital_reporting_only": True,
         'risk_fraction_current_equity': V261_RISK_FRACTION,
         'v261_family': True,
         'v261_implementation': V261_IMPLEMENTATION,
@@ -330,6 +332,7 @@ base.v221.validate_config = kernel.validate_config
 base.v221.control_config = kernel.control_config
 base.v221.canonical_hash = kernel.canonical_hash
 base.v221.ResearchContractError = kernel.ResearchContractError
+base.v221.hard_target_pass = hard_target_pass
 base.v221.strategy_signal = strategy_signal
 base.v221.simulate = simulate
 base.v221.aggregate_folds = aggregate_folds
