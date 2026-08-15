@@ -86,10 +86,10 @@ class V262FailureTaxonomyTests(unittest.TestCase):
             sys.modules[spec.name] = module
             spec.loader.exec_module(module)
 
-            original = module.V262_BASE_CONTROLLER.execute_round
+            original = module.V262_BASE_EXECUTE_ROUND
             def fail_round(self, round_number, preflight):
                 raise module.LabError('checkpoint mismatch after process crash')
-            module.V262_BASE_CONTROLLER.execute_round = fail_round
+            module.V262_BASE_EXECUTE_ROUND = fail_round
             try:
                 with tempfile.TemporaryDirectory() as directory:
                     controller = object.__new__(module.Controller)
@@ -113,7 +113,7 @@ class V262FailureTaxonomyTests(unittest.TestCase):
                     assert decision['trading_actions'] is False
                     assert decision['exchange_api_access'] is False
             finally:
-                module.V262_BASE_CONTROLLER.execute_round = original
+                module.V262_BASE_EXECUTE_ROUND = original
             print('V262_RECOVERY_AUDIT_RERAISE_OK')
             """
         )
