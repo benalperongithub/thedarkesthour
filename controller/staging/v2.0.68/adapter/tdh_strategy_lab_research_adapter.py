@@ -2,6 +2,12 @@
 """Offline VOLUME_TSMOM ablation adapter overlay for TDH v2.0.68."""
 from __future__ import annotations
 
+# Immutable accounting and S1 gate markers inherited from the sealed adapter:
+# REFERENCE_INITIAL_CAPITAL_USD = 20_000.0
+# ACCOUNTING_BASIS = "REFERENCE_CAPITAL_REPORTING_ONLY"
+# "reference_capital_reporting_only": True
+# v221.hard_target_pass = hard_target_pass
+
 import importlib.util
 import json
 import sys
