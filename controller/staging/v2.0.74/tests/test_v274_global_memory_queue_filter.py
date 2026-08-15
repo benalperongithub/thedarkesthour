@@ -146,6 +146,18 @@ class V274GlobalMemoryQueueFilterTests(unittest.TestCase):
         finally:
             MODULE.V216_GLOBAL_MEMORY_MODULE = original_module
 
+    def test_legacy_staging_fixture_without_config_is_isolated(self):
+        fixture = type('LegacyFixture', (), {})()
+        fixture.run_dir = Path('/tmp/tdh-v274-legacy-fixture')
+        self.assertIsNone(MODULE._v274_controller_memory_root(fixture))
+
+    def test_missing_runtime_root_fails_closed(self):
+        with self.assertRaisesRegex(
+            MODULE.LabError,
+            'controller memory root is unavailable',
+        ):
+            MODULE._v274_controller_memory_root(object())
+
     def test_runtime_contract_preserves_offline_s1_policy(self):
         contract = MODULE.runtime_binding_contract()
         self.assertEqual(
