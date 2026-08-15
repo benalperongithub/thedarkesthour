@@ -990,6 +990,14 @@ def _v251_legal_frontier_item(
         return False
 
     axes = _v251_transition_axes(source_config, candidate_config)
+    # A v2.0.69 provenance marker is a strict contract, not an advisory label.
+    # Reject the whole item before the generic single-axis allowance if either
+    # the sealed hashes, registry identity or reconstructed config was altered.
+    if (
+        'v269_reviewed_queue' in item
+        and not _v269_exact_reviewed_queue_item(item)
+    ):
+        return False
     if axes == ('family',) or len(axes) == 1:
         return True
     # An exact kernel-registered seed is an atomic bounded experiment even when
