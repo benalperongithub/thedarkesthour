@@ -58,6 +58,7 @@ kernel = _V279_KERNEL
 
 V279_FAMILY = kernel.V278_FAMILY
 V279_EXPERIMENT_IDS = frozenset(kernel.V278_IDENTITIES)
+V268_EXPERIMENT_IDS = frozenset(kernel.V268_IDENTITIES)
 V279_IMPLEMENTATION = 'V278_ID_BOUND_VTM40_VOLRANK60_P80_CAUSAL_SHUFFLE100_V1'
 V279_MIN_TRADES_PER_SYMBOL = 30
 _BASE_SIGNAL = base.v221.strategy_signal
@@ -168,30 +169,50 @@ def finalize_comparisons(results: list[dict[str, Any]], stage: str) -> None:
         if row.get('classification') != 'PERFORMANCE':
             continue
         config = _effective_config(row)
-        if config.get('experiment_id') not in V279_EXPERIMENT_IDS:
+        experiment_id = config.get('experiment_id')
+        is_v279 = experiment_id in V279_EXPERIMENT_IDS
+        is_v268 = experiment_id in V268_EXPERIMENT_IDS
+        if not is_v279 and not is_v268:
             continue
         metrics = row.get('metrics')
         if not isinstance(metrics, dict):
             raise AdapterError('v2.0.79 performance metrics missing')
         trade_count = int(metrics.get('trade_count', 0))
         gates = row.setdefault('gates', {})
-        gates.update({
-            'v279_min_trades_per_symbol_30': (
-                trade_count >= V279_MIN_TRADES_PER_SYMBOL
-            ),
-            'v279_doge_excluded': config.get('symbol') != 'DOGEUSDT',
-            'v279_candidate_baseline_negative_control_bound': True,
-            'v279_closed_bar_only': True,
-            'v279_next_bar_entry': True,
-            'v279_causal_shuffle_uses_future_labels': False,
-            'v279_s1_only': True,
-            'v279_implementation': V279_IMPLEMENTATION,
-        })
-        if trade_count < V279_MIN_TRADES_PER_SYMBOL:
+        if is_v268:
+            gates.update({
+                'v268_min_trades_per_symbol_30': (
+                    trade_count >= V268_MIN_TRADES_PER_SYMBOL
+                ),
+                'v268_doge_excluded': config.get('symbol') != 'DOGEUSDT',
+                'v268_candidate_baseline_negative_control_bound': True,
+                'v268_closed_bar_only': True,
+                'v268_next_bar_entry': True,
+                'v268_causal_shuffle_uses_future_labels': False,
+                'v268_s1_only': True,
+                'v268_implementation': V268_IMPLEMENTATION,
+            })
+            minimum = V268_MIN_TRADES_PER_SYMBOL
+            reason = 'v2.0.68 requires at least 30 trades per symbol'
+        else:
+            gates.update({
+                'v279_min_trades_per_symbol_30': (
+                    trade_count >= V279_MIN_TRADES_PER_SYMBOL
+                ),
+                'v279_doge_excluded': config.get('symbol') != 'DOGEUSDT',
+                'v279_candidate_baseline_negative_control_bound': True,
+                'v279_closed_bar_only': True,
+                'v279_next_bar_entry': True,
+                'v279_causal_shuffle_uses_future_labels': False,
+                'v279_s1_only': True,
+                'v279_implementation': V279_IMPLEMENTATION,
+            })
+            minimum = V279_MIN_TRADES_PER_SYMBOL
+            reason = 'v2.0.79 requires at least 30 trades per symbol'
+        if trade_count < minimum:
             row['status'] = 'FAIL'
             row['controller_verdict'] = 'FAIL'
             reasons = list(row.get('failure_reasons') or [])
-            reason = 'v2.0.79 requires at least 30 trades per symbol'
             if reason not in reasons:
                 reasons.append(reason)
             row['failure_reasons'] = reasons
@@ -219,4 +240,3 @@ def main() -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
-
