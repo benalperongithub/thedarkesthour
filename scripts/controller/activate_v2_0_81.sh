@@ -39,6 +39,10 @@ rollback_on_error() {
     exit "$rc"
 }
 
+activation_fail() {
+    return "$1"
+}
+
 trap cleanup EXIT
 trap rollback_on_error ERR
 
@@ -151,19 +155,19 @@ LAST_RUNTIME_STAGE=""
 while :; do
     if [[ "$(systemctl is-active "$SERVICE" || true)" != "active" ]]; then
         echo "BLOCKED: v2.0.81 supervisor stopped during runtime verification"
-        exit 7
+        activation_fail 7
     fi
 
     MAIN_PID_AFTER="$(systemctl show "$SERVICE" -p MainPID --value)"
     if [[ ! "$MAIN_PID_AFTER" =~ ^[1-9][0-9]*$ ]]; then
         echo "BLOCKED: v2.0.81 supervisor has no live MainPID"
-        exit 8
+        activation_fail 8
     fi
-    CMDLINE_AFTER="$(tr '\\0' ' ' <"/proc/$MAIN_PID_AFTER/cmdline")"
+    CMDLINE_AFTER="$(tr '\0' ' ' <"/proc/$MAIN_PID_AFTER/cmdline")"
     if [[ "$CMDLINE_AFTER" != *"$NEW_RELEASE/strategy_lab_controller.py"* ]]; then
         echo "BLOCKED: v2.0.81 supervisor command line drifted"
         echo "CMDLINE_AFTER=$CMDLINE_AFTER"
-        exit 9
+        activation_fail 9
     fi
 
     LATEST_RUN="$(find "$BASE/runs" -mindepth 1 -maxdepth 1 -type d \
@@ -191,7 +195,7 @@ PY
         if [[ "$RUNTIME_STAGE" == "BLOCKED" ]]; then
             echo "BLOCKED: v2.0.81 runtime entered BLOCKED state"
             python3 -m json.tool "$LATEST_RUN/STATE.json" || true
-            exit 10
+            activation_fail 10
         fi
 
         if [[ -f "$LATEST_RUN/round-01/S1_FINANCIAL_EVIDENCE.json" ]]; then
@@ -208,7 +212,7 @@ PY
             find "$LATEST_RUN/round-01" -maxdepth 1 -type f \
                 -printf '%f\\n' 2>/dev/null | sort || true
         fi
-        exit 11
+        activation_fail 11
     fi
 
     sleep "$RUNTIME_VERIFY_POLL_SECONDS"
@@ -219,13 +223,13 @@ if grep -R -F -q -- \
     'v2.0.41 post-S1 precheck compaction cannot preserve headroom:' \
     "$LATEST_RUN"; then
     echo "BLOCKED: legacy v2.0.41 post-S1 headroom failure repeated"
-    exit 5
+    activation_fail 5
 fi
 if grep -R -F -q -- \
     'v2.0.80 post-S1 fold counterexample is missing' \
     "$LATEST_RUN"; then
     echo "BLOCKED: v2.0.80 fold-counterexample mismatch repeated"
-    exit 6
+    activation_fail 6
 fi
 python3 - "$LATEST_RUN/STATE.json" <<'PY'
 import json
