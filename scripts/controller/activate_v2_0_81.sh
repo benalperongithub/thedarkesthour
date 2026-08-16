@@ -13,12 +13,15 @@ START_ISO="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 BACKUP="${UNIT}.bak-${OLD_VERSION}-to-${NEW_VERSION}-${STAMP}"
 VERIFY_UNIT="/tmp/strategy-lab-supervisor-v2.1-v281-verify-${STAMP}.service"
 PREFLIGHT_LOG="/tmp/tdh-v2.0.81-activation-preflight.log"
+RUN_MARKER="/tmp/tdh-v281-activation-run-${STAMP}.marker"
+RUNTIME_VERIFY_TIMEOUT_SECONDS=1200
+RUNTIME_VERIFY_POLL_SECONDS=10
 UNIT_UPDATED=false
 ACTIVATION_MODE=""
 BACKUP_CREATED=false
 
 cleanup() {
-    rm -f -- "$VERIFY_UNIT"
+    rm -f -- "$VERIFY_UNIT" "$RUN_MARKER"
 }
 
 rollback_on_error() {
@@ -126,6 +129,7 @@ fi
 systemctl daemon-reload
 systemctl unmask --runtime "$SERVICE"
 systemctl reset-failed "$SERVICE" || true
+touch "$RUN_MARKER"
 systemctl start "$SERVICE"
 sleep 5
 test "$(systemctl is-active "$SERVICE")" = "active"
@@ -138,18 +142,79 @@ echo "MAIN_PID=$MAIN_PID"
 echo "CMDLINE=$CMDLINE"
 
 echo "===== 5. VERIFY RUNTIME CROSSES POST-S1 HEADROOM BOUNDARY ====="
-sleep 300
-test "$(systemctl is-active "$SERVICE")" = "active"
-MAIN_PID_AFTER="$(systemctl show "$SERVICE" -p MainPID --value)"
-[[ "$MAIN_PID_AFTER" =~ ^[1-9][0-9]*$ ]]
-CMDLINE_AFTER="$(tr '\0' ' ' <"/proc/$MAIN_PID_AFTER/cmdline")"
-[[ "$CMDLINE_AFTER" == *"$NEW_RELEASE/strategy_lab_controller.py"* ]]
+VERIFY_DEADLINE_EPOCH="$((
+    $(date -u +%s) + RUNTIME_VERIFY_TIMEOUT_SECONDS
+))"
+LATEST_RUN=""
+LAST_RUNTIME_STAGE=""
 
-LATEST_RUN="$(find "$BASE/runs" -mindepth 1 -maxdepth 1 -type d \
-    -name 'tdh-strategy-lab-v2-*' -printf '%T@ %p\n' \
-    | sort -nr | awk 'NR==1 {print $2}')"
-test -n "$LATEST_RUN"
-test -f "$LATEST_RUN/round-01/S1_FINANCIAL_EVIDENCE.json"
+while :; do
+    if [[ "$(systemctl is-active "$SERVICE" || true)" != "active" ]]; then
+        echo "BLOCKED: v2.0.81 supervisor stopped during runtime verification"
+        exit 7
+    fi
+
+    MAIN_PID_AFTER="$(systemctl show "$SERVICE" -p MainPID --value)"
+    if [[ ! "$MAIN_PID_AFTER" =~ ^[1-9][0-9]*$ ]]; then
+        echo "BLOCKED: v2.0.81 supervisor has no live MainPID"
+        exit 8
+    fi
+    CMDLINE_AFTER="$(tr '\\0' ' ' <"/proc/$MAIN_PID_AFTER/cmdline")"
+    if [[ "$CMDLINE_AFTER" != *"$NEW_RELEASE/strategy_lab_controller.py"* ]]; then
+        echo "BLOCKED: v2.0.81 supervisor command line drifted"
+        echo "CMDLINE_AFTER=$CMDLINE_AFTER"
+        exit 9
+    fi
+
+    LATEST_RUN="$(find "$BASE/runs" -mindepth 1 -maxdepth 1 -type d \
+        -name 'tdh-strategy-lab-v2-*' -newer "$RUN_MARKER" \
+        -printf '%T@ %p\\n' | sort -nr | awk 'NR==1 {print $2}')"
+
+    if [[ -n "$LATEST_RUN" && -f "$LATEST_RUN/STATE.json" ]]; then
+        if ! RUNTIME_STAGE="$(python3 - "$LATEST_RUN/STATE.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding='utf-8') as handle:
+    state = json.load(handle)
+print(str(state.get('stage') or 'UNKNOWN'))
+PY
+)"; then
+            RUNTIME_STAGE="STATE_UNREADABLE"
+        fi
+
+        if [[ "$RUNTIME_STAGE" != "$LAST_RUNTIME_STAGE" ]]; then
+            echo "RUNTIME_PROGRESS_STAGE=$RUNTIME_STAGE"
+            LAST_RUNTIME_STAGE="$RUNTIME_STAGE"
+        fi
+
+        if [[ "$RUNTIME_STAGE" == "BLOCKED" ]]; then
+            echo "BLOCKED: v2.0.81 runtime entered BLOCKED state"
+            python3 -m json.tool "$LATEST_RUN/STATE.json" || true
+            exit 10
+        fi
+
+        if [[ -f "$LATEST_RUN/round-01/S1_FINANCIAL_EVIDENCE.json" ]]; then
+            break
+        fi
+    fi
+
+    if (( $(date -u +%s) >= VERIFY_DEADLINE_EPOCH )); then
+        echo "BLOCKED: timed out waiting for v2.0.81 S1 financial evidence"
+        echo "RUNTIME_VERIFY_TIMEOUT_SECONDS=$RUNTIME_VERIFY_TIMEOUT_SECONDS"
+        echo "LATEST_RUN=${LATEST_RUN:-NOT_CREATED}"
+        if [[ -n "$LATEST_RUN" ]]; then
+            python3 -m json.tool "$LATEST_RUN/STATE.json" || true
+            find "$LATEST_RUN/round-01" -maxdepth 1 -type f \
+                -printf '%f\\n' 2>/dev/null | sort || true
+        fi
+        exit 11
+    fi
+
+    sleep "$RUNTIME_VERIFY_POLL_SECONDS"
+done
+
+echo "S1_FINANCIAL_EVIDENCE_READY=$LATEST_RUN/round-01/S1_FINANCIAL_EVIDENCE.json"
 if grep -R -F -q -- \
     'v2.0.41 post-S1 precheck compaction cannot preserve headroom:' \
     "$LATEST_RUN"; then
