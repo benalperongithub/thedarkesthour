@@ -83,7 +83,10 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
     # 1. an eligible candidate produces a deterministic recovery selection
     def test_eligible_candidate_is_admitted_deterministically(self):
         updated = self.recover()
-        self.assertEqual(len(updated['novelty_frontier']), 1)
+        self.assertEqual(
+            len(updated['novelty_frontier']),
+            MODULE.V282_MAX_REGISTRY_ADMISSIONS,
+        )
         event = updated['v282_legal_frontier_recovery']
         self.assertEqual(event['status'], MODULE.V282_STATUS_ADMITTED)
         self.assertEqual(
@@ -204,6 +207,26 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
             event['rejection_reason_distribution']['UNSUPPORTED_TIMEFRAME'], 1
         )
         self.assertNotEqual(event['selected_experiment_id'], target)
+
+    def test_peer_lane_is_deliberately_recovered_too(self):
+        # Unlike the inherited lanes this one is not codex-only. Both peer
+        # lanes stall on the same exhausted queues, so both are recovered; the
+        # accepted cost is a claude provider call that v2.0.81 did not make.
+        codex = self.recover()['v282_legal_frontier_recovery']
+        context = self.context()
+        context['registered_candidate_contract'] = {
+            'dual_lane_contract': {
+                'excluded_peer_family': codex['selected_family_id'],
+            },
+        }
+        updated = self.recover(context, actor='claude')
+        event = updated['v282_legal_frontier_recovery']
+        self.assertEqual(len(updated['novelty_frontier']), 1)
+        self.assertEqual(event['status'], MODULE.V282_STATUS_ADMITTED)
+        self.assertEqual(event['actor'], 'claude')
+        self.assertNotEqual(
+            event['selected_family_id'], codex['selected_family_id']
+        )
 
     def test_excluded_peer_family_is_honoured(self):
         first_family = self.pool[0][0]
@@ -348,6 +371,12 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
             contract['v282_decision_chained_to_previous_decision']
         )
         self.assertTrue(contract['v282_exhausted_registry_fails_closed'])
+        self.assertTrue(contract['v282_peer_lane_rotation_enabled'])
+        self.assertTrue(contract['v282_peer_lane_families_stay_disjoint'])
+        self.assertEqual(
+            contract['v282_max_registry_admissions'],
+            MODULE.V282_MAX_REGISTRY_ADMISSIONS,
+        )
         self.assertTrue(contract['v282_s1_only'])
         self.assertTrue(contract['v282_s1_gates_unchanged'])
         self.assertTrue(contract['v282_unknown_errors_fail_closed'])

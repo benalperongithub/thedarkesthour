@@ -160,8 +160,12 @@ rebuilt with the sealed kernel schema, hash-bound to its registry entry,
 deduplicated against bounded round context and authoritative global memory, and
 must still satisfy the inherited single-material-axis contract.  A genuinely
 exhausted registry produces an explicit hash-bound fail-closed decision with
-reason codes and set hashes instead of a silent repeat.  No filter is relaxed
-and no S1, promotion, provider, trading or exchange boundary is changed.
+reason codes and set hashes instead of a silent repeat.  Unlike the inherited
+lanes this one deliberately serves both peer lanes, since both stall on the
+same exhausted queues; the accepted cost is that a claude lane which used to
+skip silently can now dispatch one provider call, while the dual-lane contract
+keeps the peer families disjoint.  No filter is relaxed and no S1, promotion,
+provider, trading or exchange boundary is changed.
 """
 from __future__ import annotations
 
@@ -2499,6 +2503,11 @@ def _v282_legal_frontier_recovery(
         return context
 
     updated = copy.deepcopy(context)
+    # Unlike every inherited replenishment lane this one is deliberately not
+    # restricted to codex. Both peer lanes stall on the same exhausted queues,
+    # so both are recovered. The cost is explicit: a claude lane that used to
+    # skip without a provider call can now receive a rotated candidate and
+    # dispatch one. The dual-lane contract still keeps the peer families apart.
     if actor == 'claude':
         registered = updated.get('registered_candidate_contract')
         dual = (
@@ -2682,7 +2691,12 @@ def _v282_legal_frontier_recovery(
     }
     decision = {**core, 'decision_sha256': _v254_canonical_hash(core)}
     if selected_item is not None:
-        updated['novelty_frontier'] = [selected_item]
+        # Bind the declared admission bound to the emitted frontier so the
+        # constant cannot drift away from the behaviour it documents.
+        admitted_rows = [selected_item][:V282_MAX_REGISTRY_ADMISSIONS]
+        if len(admitted_rows) != V282_MAX_REGISTRY_ADMISSIONS:
+            raise LabError('v2.0.82 rotation admission bound drifted')
+        updated['novelty_frontier'] = admitted_rows
     updated['v282_legal_frontier_recovery'] = decision
     return updated
 
@@ -6337,6 +6351,8 @@ def runtime_binding_contract() -> dict[str, Any]:
         'v282_negative_memory_and_quarantine_preserved': True,
         'v282_duplicate_candidate_never_reproposed': True,
         'v282_max_registry_admissions': V282_MAX_REGISTRY_ADMISSIONS,
+        'v282_peer_lane_rotation_enabled': True,
+        'v282_peer_lane_families_stay_disjoint': True,
         'v282_rejection_reasons_recorded': True,
         'v282_eligible_and_rejected_sets_hash_bound': True,
         'v282_decision_chained_to_previous_decision': True,

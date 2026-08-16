@@ -11,8 +11,8 @@ REPO_SOURCE="$REPO/controller/staging/v2.0.82"
 GATE="/usr/local/sbin/tdh-lab-admin-gate"
 PYTHON="/srv/tdh-research/phoenix-venv/bin/python"
 
-EXPECTED_CONTROLLER_SHA256="a292881c64a73719b53960e464d922ae697dd3b3846ba2e4c79aaffd8567174e"
-EXPECTED_V282_TEST_SHA256="e024a71c70940b924f7fbb9e3cf302ae4a6cbbfdedfff355cd03cf6424fe3c03"
+EXPECTED_CONTROLLER_SHA256="23759f5cc11a5a499978f29842da3ad6a55aad30b5005dce7a153b114c5b3155"
+EXPECTED_V282_TEST_SHA256="acde5aac1b85fea15f9a3ac2ead289bcde615599df5ad930e5263f55b92cb1b7"
 
 cleanup() {
     if [[ -d "$TMP" && "$TMP" == "$BASE/staging/.v2.0.82-build-"* ]]; then
@@ -118,6 +118,11 @@ assert contract['v282_rejection_reasons_recorded'] is True
 assert contract['v282_eligible_and_rejected_sets_hash_bound'] is True
 assert contract['v282_decision_chained_to_previous_decision'] is True
 assert contract['v282_exhausted_registry_fails_closed'] is True
+assert contract['v282_peer_lane_rotation_enabled'] is True
+assert contract['v282_peer_lane_families_stay_disjoint'] is True
+assert contract['v282_max_registry_admissions'] == (
+    module.V282_MAX_REGISTRY_ADMISSIONS
+)
 assert contract['v282_new_families_auto_registered'] is False
 assert contract['v282_model_generated_executable_code'] is False
 assert contract['v282_provider_invoked_by_recovery'] is False
