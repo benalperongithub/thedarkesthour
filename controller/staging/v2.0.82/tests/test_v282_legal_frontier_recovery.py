@@ -29,10 +29,12 @@ def load_controller():
 MODULE = load_controller()
 
 
+FAMILIES, EXPERIMENTS = MODULE.kernel.registry()
+
+
 def config_for(experiment_id: str, symbol: str) -> dict:
-    _, experiments = MODULE.kernel.registry()
     return MODULE.kernel.validate_config(
-        MODULE.kernel.performance_config(experiments[experiment_id], symbol)
+        MODULE.kernel.performance_config(EXPERIMENTS[experiment_id], symbol)
     )
 
 
@@ -88,12 +90,14 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
             event['next_action'], 'PROPOSE_ROTATED_REGISTERED_CANDIDATE'
         )
         # Independent oracle: with empty global memory the lane must land on
-        # the first registry row in pool order that clears the timeframe gate.
-        _, experiments = MODULE.kernel.registry()
+        # the first registry row in pool order that is neither already used by
+        # the inherited source candidate nor gated out by its timeframe.
+        used_ids, _ = MODULE._v254_used_identities(self.context())
         expected_family, expected_experiment = next(
             (family, experiment_id)
             for family, experiment_id in self.pool
-            if MODULE._v282_experiment_timeframe(experiments[experiment_id])
+            if experiment_id not in used_ids
+            and MODULE._v282_experiment_timeframe(EXPERIMENTS[experiment_id])
             in MODULE.V282_ELIGIBLE_TIMEFRAMES
         )
         self.assertEqual(event['selected_family_id'], expected_family)
@@ -126,7 +130,7 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
             MODULE._v254_canonical_hash(config_for(experiment_id, symbol))
             for family, experiment_id in self.pool
             if family == first_family
-            for symbol in MODULE.kernel.registry()[1][experiment_id]['universe']
+            for symbol in EXPERIMENTS[experiment_id]['universe']
         }
         event = self.recover(
             historical=historical
@@ -187,14 +191,13 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
 
     # 6. a registered row on an unsupported timeframe is eliminated
     def test_unsupported_timeframe_is_rejected_with_reason(self):
-        _, experiments = MODULE.kernel.registry()
         target = self.pool[0][1]
-        drifted = copy.deepcopy(experiments)
+        drifted = copy.deepcopy(EXPERIMENTS)
         drifted[target]['effective_timeframe'] = '3w'
         drifted[target].pop('timeframe', None)
         with mock.patch.object(
             MODULE.kernel, 'registry',
-            return_value=(list(MODULE.kernel.registry()[0]), drifted),
+            return_value=(copy.deepcopy(FAMILIES), drifted),
         ):
             event = self.recover()['v282_legal_frontier_recovery']
         self.assertGreaterEqual(
@@ -363,12 +366,11 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
     # VPS during staging. Offline this asserts the admitted row is exactly the
     # executable shape the S1 executor requires.
     def test_admitted_row_matches_s1_execution_contract(self):
-        event = self.recover()['v282_legal_frontier_recovery']
-        item = self.recover()['novelty_frontier'][0]
-        config = item['config']
-        families, experiments = MODULE.kernel.registry()
-        experiment = experiments[event['selected_experiment_id']]
-        self.assertIn(config['family'], families)
+        updated = self.recover()
+        event = updated['v282_legal_frontier_recovery']
+        config = updated['novelty_frontier'][0]['config']
+        experiment = EXPERIMENTS[event['selected_experiment_id']]
+        self.assertIn(config['family'], FAMILIES)
         self.assertIn(config['symbol'], experiment['universe'])
         self.assertEqual(config['control_mode'], 'PERFORMANCE')
         self.assertIn(
@@ -385,11 +387,10 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
     # 14. a genuinely exhausted registry completes fail closed
     def test_exhausted_registry_fails_closed_with_reason_codes(self):
         bounded = self.pool[:3]
-        _, experiments = MODULE.kernel.registry()
         historical = {
             MODULE._v254_canonical_hash(config_for(experiment_id, symbol))
             for _, experiment_id in bounded
-            for symbol in experiments[experiment_id]['universe']
+            for symbol in EXPERIMENTS[experiment_id]['universe']
         }
         with mock.patch.object(
             MODULE, '_v282_registry_rotation_pool', return_value=bounded
@@ -431,12 +432,11 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
         self.assertFalse(MODULE._v282_exact_rotation_item(drifted))
 
     def test_registry_rotation_pool_is_sorted_and_complete(self):
-        _, experiments = MODULE.kernel.registry()
         self.assertEqual(list(self.pool), sorted(self.pool))
-        self.assertEqual(len(self.pool), len(experiments))
+        self.assertEqual(len(self.pool), len(EXPERIMENTS))
         self.assertEqual(
             {experiment_id for _, experiment_id in self.pool},
-            set(experiments),
+            set(EXPERIMENTS),
         )
 
     # the v2.0.78 queue now records its previously silent used-id exit
