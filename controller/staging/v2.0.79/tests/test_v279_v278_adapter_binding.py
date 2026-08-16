@@ -5,8 +5,12 @@ import sys
 import unittest
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+try:
+    import numpy as np
+    import pandas as pd
+except ModuleNotFoundError:
+    np = None
+    pd = None
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,9 +29,14 @@ def load_adapter():
     return module
 
 
-MODULE = load_adapter()
+NUMERICAL_DEPS_AVAILABLE = np is not None and pd is not None
+MODULE = load_adapter() if NUMERICAL_DEPS_AVAILABLE else None
 
 
+@unittest.skipUnless(
+    NUMERICAL_DEPS_AVAILABLE,
+    'v2.0.79 numerical integration tests require the Phoenix environment',
+)
 class V279V278AdapterBindingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
