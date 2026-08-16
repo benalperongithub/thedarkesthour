@@ -150,6 +150,8 @@ VERIFY_DEADLINE_EPOCH="$((
     $(date -u +%s) + RUNTIME_VERIFY_TIMEOUT_SECONDS
 ))"
 LATEST_RUN=""
+LATEST_STATE=""
+S1_EVIDENCE_PATH=""
 LAST_RUNTIME_STAGE=""
 
 while :; do
@@ -170,12 +172,13 @@ while :; do
         activation_fail 9
     fi
 
-    LATEST_RUN="$(find "$BASE/runs" -mindepth 1 -maxdepth 1 -type d \
-        -name 'tdh-strategy-lab-v2-*' -newer "$RUN_MARKER" \
-        -printf '%T@ %p\\n' | sort -nr | awk 'NR==1 {print $2}')"
+    LATEST_STATE="$(find "$BASE/runs" -mindepth 2 -maxdepth 2 \
+        -type f -name 'STATE.json' -newer "$RUN_MARKER" -print \
+        | sort | tail -n 1)"
 
-    if [[ -n "$LATEST_RUN" && -f "$LATEST_RUN/STATE.json" ]]; then
-        if ! RUNTIME_STAGE="$(python3 - "$LATEST_RUN/STATE.json" <<'PY'
+    if [[ -n "$LATEST_STATE" ]]; then
+        LATEST_RUN="${LATEST_STATE%/STATE.json}"
+        if ! RUNTIME_STAGE="$(python3 - "$LATEST_STATE" <<'PY'
 import json
 import sys
 
@@ -194,13 +197,17 @@ PY
 
         if [[ "$RUNTIME_STAGE" == "BLOCKED" ]]; then
             echo "BLOCKED: v2.0.81 runtime entered BLOCKED state"
-            python3 -m json.tool "$LATEST_RUN/STATE.json" || true
+            python3 -m json.tool "$LATEST_STATE" || true
             activation_fail 10
         fi
+    fi
 
-        if [[ -f "$LATEST_RUN/round-01/S1_FINANCIAL_EVIDENCE.json" ]]; then
-            break
-        fi
+    S1_EVIDENCE_PATH="$(find "$BASE/runs" -mindepth 3 -maxdepth 3 \
+        -type f -path '*/round-01/S1_FINANCIAL_EVIDENCE.json' \
+        -newer "$RUN_MARKER" -print | sort | tail -n 1)"
+    if [[ -n "$S1_EVIDENCE_PATH" ]]; then
+        LATEST_RUN="${S1_EVIDENCE_PATH%/round-01/S1_FINANCIAL_EVIDENCE.json}"
+        break
     fi
 
     if (( $(date -u +%s) >= VERIFY_DEADLINE_EPOCH )); then
@@ -209,8 +216,8 @@ PY
         echo "LATEST_RUN=${LATEST_RUN:-NOT_CREATED}"
         if [[ -n "$LATEST_RUN" ]]; then
             python3 -m json.tool "$LATEST_RUN/STATE.json" || true
-            find "$LATEST_RUN/round-01" -maxdepth 1 -type f \
-                -printf '%f\\n' 2>/dev/null | sort || true
+            find "$LATEST_RUN/round-01" -maxdepth 1 -type f -print \
+                2>/dev/null | sed 's#.*/##' | sort || true
         fi
         activation_fail 11
     fi
@@ -218,7 +225,7 @@ PY
     sleep "$RUNTIME_VERIFY_POLL_SECONDS"
 done
 
-echo "S1_FINANCIAL_EVIDENCE_READY=$LATEST_RUN/round-01/S1_FINANCIAL_EVIDENCE.json"
+echo "S1_FINANCIAL_EVIDENCE_READY=$S1_EVIDENCE_PATH"
 if grep -R -F -q -- \
     'v2.0.41 post-S1 precheck compaction cannot preserve headroom:' \
     "$LATEST_RUN"; then
