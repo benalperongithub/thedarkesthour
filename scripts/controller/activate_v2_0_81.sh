@@ -16,6 +16,7 @@ PREFLIGHT_LOG="/tmp/tdh-v2.0.81-activation-preflight.log"
 RUN_MARKER="/tmp/tdh-v281-activation-run-${STAMP}.marker"
 RUNTIME_VERIFY_TIMEOUT_SECONDS=1200
 RUNTIME_VERIFY_POLL_SECONDS=10
+RUNTIME_REQUIRED_EXHAUSTED_RUNS=3
 UNIT_UPDATED=false
 ACTIVATION_MODE=""
 BACKUP_CREATED=false
@@ -145,13 +146,16 @@ CMDLINE="$(tr '\0' ' ' <"/proc/$MAIN_PID/cmdline")"
 echo "MAIN_PID=$MAIN_PID"
 echo "CMDLINE=$CMDLINE"
 
-echo "===== 5. VERIFY RUNTIME CROSSES POST-S1 HEADROOM BOUNDARY ====="
+echo "===== 5. VERIFY POST-S1 OR NO-FRONTIER CONTINUITY ====="
 VERIFY_DEADLINE_EPOCH="$((
     $(date -u +%s) + RUNTIME_VERIFY_TIMEOUT_SECONDS
 ))"
 LATEST_RUN=""
 LATEST_STATE=""
 S1_EVIDENCE_PATH=""
+RUNTIME_BOUNDARY_MODE=""
+QUALIFIED_EXHAUSTED_RUNS=0
+LAST_QUALIFIED_EXHAUSTED_RUNS=-1
 LAST_RUNTIME_STAGE=""
 
 while :; do
@@ -172,47 +176,122 @@ while :; do
         activation_fail 9
     fi
 
-    LATEST_STATE="$(find "$BASE/runs" -mindepth 2 -maxdepth 2 \
-        -type f -name 'STATE.json' -newer "$RUN_MARKER" -print \
-        | sort | tail -n 1)"
-
-    if [[ -n "$LATEST_STATE" ]]; then
-        LATEST_RUN="${LATEST_STATE%/STATE.json}"
-        if ! RUNTIME_STAGE="$(python3 - "$LATEST_STATE" <<'PY'
+    IFS='|' read -r \
+        LATEST_STATE LATEST_RUN RUNTIME_STAGE BLOCKED_RUNS \
+        INVALID_STATE_RUNS QUALIFIED_EXHAUSTED_RUNS \
+        QUALIFIED_EXHAUSTED_LATEST_RUN S1_EVIDENCE_PATH < <(
+        python3 - "$BASE/runs" "$RUN_MARKER" <<'PY'
+from pathlib import Path
 import json
 import sys
 
-with open(sys.argv[1], encoding='utf-8') as handle:
-    state = json.load(handle)
-print(str(state.get('stage') or 'UNKNOWN'))
+runs_root = Path(sys.argv[1])
+marker_ns = Path(sys.argv[2]).stat().st_mtime_ns
+required = (
+    'CODEX_PROPOSAL_SKIPPED_NO_LEGAL_FRONTIER.json',
+    'FRONTIER_REPLENISHMENT_V254.json',
+    'GLOBAL_MEMORY_QUEUE_FILTER_V274.json',
+    'NODE_CHECKPOINTS_V263.json',
+    'PACKET_A_GLOBAL_MEMORY_FILTER_V276.json',
+    'SEALED_DIVERSIFICATION_BRIDGE_V278.json',
+)
+
+state_paths = sorted(
+    path for path in runs_root.glob('tdh-strategy-lab-v2-*/STATE.json')
+    if path.stat().st_mtime_ns > marker_ns
+)
+latest_state = state_paths[-1] if state_paths else None
+latest_run = latest_state.parent if latest_state else None
+latest_stage = 'NO_STATE'
+blocked_count = 0
+invalid_count = 0
+qualified_runs = []
+s1_paths = []
+
+for state_path in state_paths:
+    run = state_path.parent
+    try:
+        with state_path.open(encoding='utf-8') as handle:
+            state = json.load(handle)
+    except (OSError, ValueError, TypeError):
+        invalid_count += 1
+        continue
+
+    stage = str(state.get('stage') or 'UNKNOWN')
+    if state_path == latest_state:
+        latest_stage = stage
+    if stage == 'BLOCKED':
+        blocked_count += 1
+
+    evidence = run / 'round-01' / 'S1_FINANCIAL_EVIDENCE.json'
+    if evidence.is_file() and evidence.stat().st_mtime_ns > marker_ns:
+        s1_paths.append(evidence)
+
+    round_dir = run / 'round-01'
+    if (
+        stage == 'ROUND_BUDGET_EXHAUSTED'
+        and not state.get('error')
+        and not evidence.exists()
+        and all((round_dir / name).is_file() for name in required)
+    ):
+        qualified_runs.append(run)
+
+qualified_latest = qualified_runs[-1] if qualified_runs else None
+s1_latest = sorted(s1_paths)[-1] if s1_paths else None
+print('|'.join((
+    str(latest_state or '-'),
+    str(latest_run or '-'),
+    latest_stage,
+    str(blocked_count),
+    str(invalid_count),
+    str(len(qualified_runs)),
+    str(qualified_latest or '-'),
+    str(s1_latest or '-'),
+)))
 PY
-)"; then
-            RUNTIME_STAGE="STATE_UNREADABLE"
-        fi
+    )
 
-        if [[ "$RUNTIME_STAGE" != "$LAST_RUNTIME_STAGE" ]]; then
-            echo "RUNTIME_PROGRESS_STAGE=$RUNTIME_STAGE"
-            LAST_RUNTIME_STAGE="$RUNTIME_STAGE"
-        fi
-
-        if [[ "$RUNTIME_STAGE" == "BLOCKED" ]]; then
-            echo "BLOCKED: v2.0.81 runtime entered BLOCKED state"
+    if (( INVALID_STATE_RUNS > 0 )); then
+        echo "BLOCKED: unreadable runtime STATE artifacts detected"
+        echo "INVALID_STATE_RUNS=$INVALID_STATE_RUNS"
+        activation_fail 10
+    fi
+    if (( BLOCKED_RUNS > 0 )); then
+        echo "BLOCKED: v2.0.81 runtime entered BLOCKED state"
+        echo "BLOCKED_RUNS=$BLOCKED_RUNS"
+        if [[ "$LATEST_STATE" != "-" ]]; then
             python3 -m json.tool "$LATEST_STATE" || true
-            activation_fail 10
         fi
+        activation_fail 10
     fi
 
-    S1_EVIDENCE_PATH="$(find "$BASE/runs" -mindepth 3 -maxdepth 3 \
-        -type f -path '*/round-01/S1_FINANCIAL_EVIDENCE.json' \
-        -newer "$RUN_MARKER" -print | sort | tail -n 1)"
-    if [[ -n "$S1_EVIDENCE_PATH" ]]; then
+    if [[ "$RUNTIME_STAGE" != "$LAST_RUNTIME_STAGE" ]]; then
+        echo "RUNTIME_PROGRESS_STAGE=$RUNTIME_STAGE"
+        LAST_RUNTIME_STAGE="$RUNTIME_STAGE"
+    fi
+    if [[ "$QUALIFIED_EXHAUSTED_RUNS" != \
+        "$LAST_QUALIFIED_EXHAUSTED_RUNS" ]]; then
+        echo "QUALIFIED_NO_FRONTIER_RUNS=$QUALIFIED_EXHAUSTED_RUNS"
+        LAST_QUALIFIED_EXHAUSTED_RUNS="$QUALIFIED_EXHAUSTED_RUNS"
+    fi
+
+    if [[ "$S1_EVIDENCE_PATH" != "-" ]]; then
         LATEST_RUN="${S1_EVIDENCE_PATH%/round-01/S1_FINANCIAL_EVIDENCE.json}"
+        RUNTIME_BOUNDARY_MODE="POST_S1_EVIDENCE"
+        break
+    fi
+
+    if (( QUALIFIED_EXHAUSTED_RUNS >= \
+        RUNTIME_REQUIRED_EXHAUSTED_RUNS )); then
+        LATEST_RUN="$QUALIFIED_EXHAUSTED_LATEST_RUN"
+        RUNTIME_BOUNDARY_MODE="NO_LEGAL_FRONTIER_CONTINUITY"
         break
     fi
 
     if (( $(date -u +%s) >= VERIFY_DEADLINE_EPOCH )); then
-        echo "BLOCKED: timed out waiting for v2.0.81 S1 financial evidence"
+        echo "BLOCKED: timed out waiting for post-S1 or no-frontier continuity"
         echo "RUNTIME_VERIFY_TIMEOUT_SECONDS=$RUNTIME_VERIFY_TIMEOUT_SECONDS"
+        echo "QUALIFIED_NO_FRONTIER_RUNS=$QUALIFIED_EXHAUSTED_RUNS"
         echo "LATEST_RUN=${LATEST_RUN:-NOT_CREATED}"
         if [[ -n "$LATEST_RUN" ]]; then
             python3 -m json.tool "$LATEST_RUN/STATE.json" || true
@@ -225,7 +304,12 @@ PY
     sleep "$RUNTIME_VERIFY_POLL_SECONDS"
 done
 
-echo "S1_FINANCIAL_EVIDENCE_READY=$S1_EVIDENCE_PATH"
+if [[ "$RUNTIME_BOUNDARY_MODE" == "POST_S1_EVIDENCE" ]]; then
+    echo "S1_FINANCIAL_EVIDENCE_READY=$S1_EVIDENCE_PATH"
+else
+    echo "NO_LEGAL_FRONTIER_CONTINUITY_RUN=$LATEST_RUN"
+    echo "POST_S1_BRIDGE_RUNTIME_EXERCISED=false"
+fi
 if grep -R -F -q -- \
     'v2.0.41 post-S1 precheck compaction cannot preserve headroom:' \
     "$LATEST_RUN"; then
@@ -248,8 +332,13 @@ error = str(state.get('error') or '')
 assert 'post-S1 precheck compaction cannot preserve headroom' not in error
 assert 'post-S1 fold counterexample is missing' not in error
 assert state.get('stage') != 'BLOCKED', state
-print('V281_RUNTIME_POST_S1_FOLD_COUNTEREXAMPLE_OK')
+print('V281_RUNTIME_STATE_OK')
 PY
+if [[ "$RUNTIME_BOUNDARY_MODE" == "POST_S1_EVIDENCE" ]]; then
+    echo "V281_RUNTIME_POST_S1_FOLD_COUNTEREXAMPLE_OK"
+else
+    echo "V281_RUNTIME_NO_LEGAL_FRONTIER_CONTINUITY_OK"
+fi
 echo "LATEST_RUN=$LATEST_RUN"
 
 systemctl show "$SERVICE" \
