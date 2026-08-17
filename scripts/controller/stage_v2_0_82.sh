@@ -12,7 +12,7 @@ GATE="/usr/local/sbin/tdh-lab-admin-gate"
 PYTHON="/srv/tdh-research/phoenix-venv/bin/python"
 
 EXPECTED_CONTROLLER_SHA256="23759f5cc11a5a499978f29842da3ad6a55aad30b5005dce7a153b114c5b3155"
-EXPECTED_V282_TEST_SHA256="acde5aac1b85fea15f9a3ac2ead289bcde615599df5ad930e5263f55b92cb1b7"
+EXPECTED_V282_TEST_SHA256="521ff86f30234a9be2dea232c003ee3ec99b436cb22460014967147e8f63e1c3"
 
 cleanup() {
     if [[ -d "$TMP" && "$TMP" == "$BASE/staging/.v2.0.82-build-"* ]]; then

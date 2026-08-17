@@ -456,9 +456,36 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
         spoof['v282_registry_rotation']['selection_rule'] = 'ARBITRARY'
         self.assertFalse(MODULE._v282_exact_rotation_item(spoof))
         self.assertFalse(MODULE._v251_legal_frontier_item(self.source, spoof))
+
+        experiment = EXPERIMENTS[item['config']['experiment_id']]
+        # Another symbol from the same sealed universe is a legitimate
+        # registered seed, not a spoof: the validator rebuilds the expected
+        # config for whichever symbol the row names.
+        peers = [
+            symbol for symbol in experiment['universe']
+            if symbol != item['config']['symbol']
+        ]
+        if peers:
+            peer = copy.deepcopy(item)
+            peer['config'] = MODULE.kernel.validate_config(
+                MODULE.kernel.performance_config(experiment, peers[0])
+            )
+            self.assertTrue(MODULE._v282_exact_rotation_item(peer))
+
+        # A symbol outside the sealed universe breaks the registry binding.
+        outside = next(
+            symbol for symbol in ('DOGEUSDT', 'SHIBUSDT', 'TDH-NOT-A-SYMBOL')
+            if symbol not in experiment['universe']
+        )
         drifted = copy.deepcopy(item)
-        drifted['config']['symbol'] = 'DOGEUSDT'
+        drifted['config']['symbol'] = outside
         self.assertFalse(MODULE._v282_exact_rotation_item(drifted))
+
+        # So does any parameter mutation.
+        mutated = copy.deepcopy(item)
+        mutated['config']['params']['tdh_injected_param'] = 1
+        self.assertFalse(MODULE._v282_exact_rotation_item(mutated))
+        self.assertFalse(MODULE._v251_legal_frontier_item(self.source, mutated))
 
     def test_registry_rotation_pool_is_sorted_and_complete(self):
         self.assertEqual(list(self.pool), sorted(self.pool))
