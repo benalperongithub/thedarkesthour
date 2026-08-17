@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import copy
 import importlib.util
 import json
@@ -42,6 +43,18 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.pool = MODULE._v282_registry_rotation_pool()
+        # A full scan reconstructs and validates every registered row, which
+        # costs 20-40s against the production registry. Most cases here
+        # exercise lane logic rather than registry breadth, so they run against
+        # a representative slice: several families, several experiments each.
+        # The cases that genuinely depend on the whole registry ask for it.
+        by_family: dict[str, list[tuple[str, str]]] = {}
+        for family, experiment_id in cls.pool:
+            by_family.setdefault(family, []).append((family, experiment_id))
+        bounded: list[tuple[str, str]] = []
+        for family in sorted(by_family)[:4]:
+            bounded.extend(by_family[family][:2])
+        cls.bounded_pool = tuple(bounded)
         # The inherited source candidate is the exact four-coin daily seed that
         # runtime acceptance left in immutable S1 evidence.
         cls.source = config_for(
@@ -68,11 +81,24 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
         base.update(extra)
         return base
 
-    def recover(self, context=None, actor='codex', historical=None, **kwargs):
-        with mock.patch.object(
-            MODULE, '_v274_full_historical_candidate_hashes',
-            return_value=set(historical or ()),
-        ):
+    def recover(
+        self,
+        context=None,
+        actor='codex',
+        historical=None,
+        full_registry=False,
+        **kwargs,
+    ):
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(
+                MODULE, '_v274_full_historical_candidate_hashes',
+                return_value=set(historical or ()),
+            ))
+            if not full_registry:
+                stack.enter_context(mock.patch.object(
+                    MODULE, '_v282_registry_rotation_pool',
+                    return_value=self.bounded_pool,
+                ))
             return MODULE._v282_legal_frontier_recovery(
                 context if context is not None else self.context(),
                 actor,
@@ -82,7 +108,7 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
 
     # 1. an eligible candidate produces a deterministic recovery selection
     def test_eligible_candidate_is_admitted_deterministically(self):
-        updated = self.recover()
+        updated = self.recover(full_registry=True)
         self.assertEqual(
             len(updated['novelty_frontier']),
             MODULE.V282_MAX_REGISTRY_ADMISSIONS,
@@ -128,10 +154,10 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
 
     # 3. rotation reaches the next eligible registered family
     def test_rotation_advances_to_next_eligible_family(self):
-        first_family, _ = self.pool[0]
+        first_family, _ = self.bounded_pool[0]
         historical = {
             MODULE._v254_canonical_hash(config_for(experiment_id, symbol))
-            for family, experiment_id in self.pool
+            for family, experiment_id in self.bounded_pool
             if family == first_family
             for symbol in EXPERIMENTS[experiment_id]['universe']
         }
@@ -194,7 +220,7 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
 
     # 6. a registered row on an unsupported timeframe is eliminated
     def test_unsupported_timeframe_is_rejected_with_reason(self):
-        target = self.pool[0][1]
+        target = self.bounded_pool[0][1]
         drifted = copy.deepcopy(EXPERIMENTS)
         drifted[target]['effective_timeframe'] = '3w'
         drifted[target].pop('timeframe', None)
@@ -229,7 +255,7 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
         )
 
     def test_excluded_peer_family_is_honoured(self):
-        first_family = self.pool[0][0]
+        first_family = self.bounded_pool[0][0]
         context = self.context()
         context['registered_candidate_contract'] = {
             'dual_lane_contract': {'excluded_peer_family': first_family},
@@ -395,7 +421,7 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
     # VPS during staging. Offline this asserts the admitted row is exactly the
     # executable shape the S1 executor requires.
     def test_admitted_row_matches_s1_execution_contract(self):
-        updated = self.recover()
+        updated = self.recover(full_registry=True)
         event = updated['v282_legal_frontier_recovery']
         config = updated['novelty_frontier'][0]['config']
         experiment = EXPERIMENTS[event['selected_experiment_id']]
@@ -415,7 +441,7 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
 
     # 14. a genuinely exhausted registry completes fail closed
     def test_exhausted_registry_fails_closed_with_reason_codes(self):
-        bounded = self.pool[:3]
+        bounded = self.bounded_pool[:3]
         historical = {
             MODULE._v254_canonical_hash(config_for(experiment_id, symbol))
             for _, experiment_id in bounded
@@ -424,7 +450,7 @@ class V282LegalFrontierRecoveryTests(unittest.TestCase):
         with mock.patch.object(
             MODULE, '_v282_registry_rotation_pool', return_value=bounded
         ):
-            updated = self.recover(historical=historical)
+            updated = self.recover(historical=historical, full_registry=True)
         event = updated['v282_legal_frontier_recovery']
         self.assertEqual(updated['novelty_frontier'], [])
         self.assertEqual(event['status'], MODULE.V282_STATUS_EXHAUSTED)
